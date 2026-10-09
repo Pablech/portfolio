@@ -1,2 +1,4 @@
 /target
 .env
+/templates/old.html
+/assets/old.css

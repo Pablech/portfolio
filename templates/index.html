@@ -396,7 +396,6 @@
                     printLine("<br>A ligar à API do GitHub... [AGUARDE]");
                 }
 
-                // 1. Decide dinamicamente a qual rota bater consoante o comando
                 const endpoint = value === 'github' ? '/api/github' : '/api/cmd';
 
                 const response = await fetch(endpoint, {
@@ -405,10 +404,9 @@
                     body: JSON.stringify({ cmd: value })
                 });
 
-                // 2. Proteção visual de Rate Limit
                 if (response.status === 429) {
                     printLine("<span style='color:#f7768e;'>[✗] Limite de taxa excedido (Too Many Requests). Por favor, aguarda um pouco antes de tentar novamente.</span>");
-                    return; // Interrompe para não tentar ler JSON que não existe
+                    return;
                 }
 
                 const data = await response.json();
