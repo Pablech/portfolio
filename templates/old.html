@@ -1,0 +1,543 @@
+
+<!-- versão quase certa daqui para baixo -->
+
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <link rel="stylesheet" href="/assets/style.css">
+    <link rel="icon" type="image/png" href="/assets/favicon.svg">
+    <style>
+        /* Estrutura Tiling (Side-by-Side) */
+        * { box-sizing: border-box; }
+        body, html {
+            margin: 0; padding: 0; height: 100%; width: 100%;
+            background-color: #1a1b26; color: #a9b1d6;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            overflow: hidden;
+        }
+
+        #app-container {
+            display: flex;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Painel Esquerdo: Terminal */
+        #terminal-pane {
+            flex: 1;
+            height: 100%;
+            overflow-y: auto;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            min-width: 250px;
+        }
+
+        #terminal { flex: 1; }
+
+        /* Separador Arrastável (Tiling Splitter) */
+        #resizer {
+            width: 6px;
+            height: 100%;
+            background: #24283b;
+            cursor: col-resize;
+            user-select: none;
+            transition: background 0.15s ease;
+            z-index: 10;
+        }
+        #resizer:hover, #resizer.resizing {
+            background: #7aa2f7;
+        }
+
+        /* Painel Direito: Conteúdo / Código */
+        #side-pane {
+            width: 50%;
+            height: 100%;
+            background: #1f2335;
+            border-left: 1px solid #414868;
+            display: none;
+            flex-direction: column;
+            min-width: 250px;
+        }
+
+        .side-header {
+            background: #16161e;
+            padding: 8px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #414868;
+            font-size: 0.9em;
+        }
+
+        .side-tabs { display: flex; gap: 8px; }
+        .side-tab {
+            cursor: pointer;
+            padding: 2px 8px;
+            border: 1px solid #414868;
+            color: #565f89;
+            user-select: none;
+        }
+        .side-tab.active {
+            color: #7aa2f7;
+            border-color: #7aa2f7;
+            background: #24283b;
+        }
+
+        .side-body {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            font-size: 0.9em;
+            line-height: 1.5;
+        }
+
+        .close-btn { cursor: pointer; color: #f7768e; font-weight: bold; }
+        .close-btn:hover { color: #ff5f56; }
+
+        /* Modal de Status Flutuante (Sem bloquear o terminal) */
+        #modal-status {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            border: 1px solid #7aa2f7;
+            background: #1a1b26;
+            padding: 15px;
+            z-index: 1000;
+            max-width: 400px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app-container">
+        <!-- PAINEL ESQUERDO: TERMINAL -->
+        <div id="terminal-pane" onclick="focusTerminal(event)">
+            <div id="terminal">
+                <div id="output">
+                    <div class="cmd-output">Portfolio OS v1.0.0 (tty1)</div>
+                    <div class="cmd-output">Escreve 'help' para veres os comandos disponiveis.</div>
+                    <br>
+                </div>
+                
+                <div class="input-line" id="input-container">
+                    <span class="prompt" id="prompt-label">pablech@portfolio:~\$</span>
+                    <span id="typed-text"></span>
+                    <span id="cursor-block"></span>
+                    <input type="text" id="cmd-input" autocomplete="off" autofocus spellcheck="false" style="position:absolute; opacity:0; width:1px;">
+                </div>
+            </div>
+        </div>
+
+        <!-- DIVISOR ARRASTÁVEL -->
+        <div id="resizer"></div>
+
+        <!-- PAINEL DIREITO: DETAILS / CODE (TILING) -->
+        <div id="side-pane">
+            <div class="side-header">
+                <div class="side-tabs">
+                    <span id="tab-detalhes" class="side-tab active" onclick="switchSideTab('detalhes')">[ DETALHES ]</span>
+                    <span id="tab-code" class="side-tab" onclick="switchSideTab('code')">[ CÓDIGO ]</span>
+                </div>
+                <span id="side-title" style="color:#7aa2f7; font-weight:bold;">[ REPOSITÓRIO ]</span>
+                <span class="close-btn" onclick="closeSidePane()">[X]</span>
+            </div>
+            <div id="detalhes-view" class="side-body"></div>
+            <div id="code-view" class="side-body" style="display:none;">// NENHUM FICHEIRO SELECIONADO</div>
+        </div>
+    </div>
+
+    <!-- POPUP STATUS (NOTIFICAÇÃO SEM BLOQUEAR TERMINAL) -->
+    <div id="modal-status">
+        <div id="status-title" style="font-weight:bold; margin-bottom:8px;"></div>
+        <div id="status-body" style="margin-bottom:12px; font-size:0.85em;"></div>
+        <div style="text-align:right;">
+            <span class="btn-tty" onclick="closeStatusModal()" style="cursor:pointer; padding: 2px 6px; border: 1px solid #7aa2f7; color:#7aa2f7;">[ OK ]</span>
+        </div>
+    </div>
+
+    <script>
+        const cmdInput = document.getElementById('cmd-input');
+        const typedText = document.getElementById('typed-text');
+        const outputDiv = document.getElementById('output');
+        const promptLabel = document.getElementById('prompt-label');
+        const terminalPane = document.getElementById('terminal-pane');
+        const sidePane = document.getElementById('side-pane');
+        const resizer = document.getElementById('resizer');
+
+        const DEFAULT_PROMPT = 'pablech@portfolio:~\$';
+
+        let backendRepos = [];
+        let wizardStep = null;
+        const wizardData = { from: '', subject: '', body: '' };
+        const WIZARD_STEPS = [
+            { key: 'from', prompt: 'De (teu e-mail):' },
+            { key: 'subject', prompt: 'Assunto:' },
+            { key: 'body', prompt: 'Mensagem:' }
+        ];
+
+        let isPaginating = false;
+        let ghPage = 0;
+        let isSending = false;
+        let activeRepo = null;
+
+        cmdInput.addEventListener('input', () => {
+            typedText.textContent = cmdInput.value;
+        });
+
+        function focusTerminal(e) {
+            // Foca o input se não estiver a selecionar texto no painel do terminal
+            if (window.getSelection().toString().length === 0) {
+                cmdInput.focus();
+            }
+        }
+
+        /* LÓGICA DE TILING SPLIT REDIMENSIONÁVEL */
+        let isResIZING = false;
+
+        resizer.addEventListener('mousedown', (e) => {
+            isResIZING = true;
+            resizer.classList.add('resizing');
+            document.body.style.cursor = 'col-resize';
+            document.body.style.userSelect = 'none';
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isResIZING) return;
+            const containerWidth = document.getElementById('app-container').clientWidth;
+            let leftWidth = e.clientX;
+
+            // Limites mínimos para cada lado
+            if (leftWidth < 250) leftWidth = 250;
+            if (containerWidth - leftWidth < 250) leftWidth = containerWidth - 250;
+
+            const rightWidth = containerWidth - leftWidth - resizer.offsetWidth;
+            terminalPane.style.flex = 'none';
+            terminalPane.style.width = `${leftWidth}px`;
+            sidePane.style.width = `${rightWidth}px`;
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isResIZING) {
+                isResIZING = false;
+                resizer.classList.remove('resizing');
+                document.body.style.cursor = '';
+                document.body.style.userSelect = '';
+            }
+        });
+
+        function openSidePane() {
+            if (sidePane.style.display !== 'flex') {
+                sidePane.style.display = 'flex';
+                resizer.style.display = 'block';
+                // Define 50/50 por defeito
+                terminalPane.style.flex = '1';
+                terminalPane.style.width = '';
+                sidePane.style.width = '50%';
+            }
+        }
+
+        function closeSidePane() {
+            sidePane.style.display = 'none';
+            resizer.style.display = 'none';
+            terminalPane.style.flex = '1';
+            terminalPane.style.width = '100%';
+            cmdInput.focus();
+        }
+
+        function switchSideTab(tab) {
+            const tabDetalhes = document.getElementById('tab-detalhes');
+            const tabCode = document.getElementById('tab-code');
+            const detalhesView = document.getElementById('detalhes-view');
+            const codeView = document.getElementById('code-view');
+
+            if (tab === 'detalhes') {
+                tabDetalhes.classList.add('active');
+                tabCode.classList.remove('active');
+                detalhesView.style.display = 'block';
+                codeView.style.display = 'none';
+            } else {
+                tabCode.classList.add('active');
+                tabDetalhes.classList.remove('active');
+                codeView.style.display = 'block';
+                detalhesView.style.display = 'none';
+            }
+        }
+
+        function openDetalhes(repoId) {
+            const repo = backendRepos.find(r => r.id === repoId);
+            if (!repo) return;
+            activeRepo = repo;
+
+            openSidePane();
+            switchSideTab('detalhes');
+
+            document.getElementById('side-title').textContent = `[ ${repo.name} ]`;
+            
+            let filesHtml = repo.files.map((f, idx) => 
+                `|-- <span class="btn-tty" style="cursor:pointer; color:#7aa2f7;" onclick="openVSCode(${repoId}, ${idx})">${f.name}</span>`
+            ).join('<br>');
+
+            document.getElementById('detalhes-view').innerHTML = `
+                <p>> <b>Linguagem:</b> ${repo.lang}</p>
+                <p>> <b>Descrição:</b> ${repo.desc}</p>
+                <p>> <b>Link:</b> <a href="${repo.url}" target="_blank" style="color:#7aa2f7; text-decoration:underline;">${repo.url}</a></p>
+                <br>
+                <p>> <b>Árvore de Ficheiros Públicos:</b></p>
+                ${filesHtml}
+            `;
+            cmdInput.focus();
+        }
+
+        function openVSCode(repoId, fileIdx) {
+            const repo = backendRepos.find(r => r.id === repoId);
+            if (!repo) return;
+            const file = repo.files[fileIdx];
+
+            openSidePane();
+            switchSideTab('code');
+
+            document.getElementById('side-title').textContent = `[ ${repo.name} / ${file.name} ]`;
+            
+            const coloredCode = file.code
+                .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+                .replace(/fn |let |mut |pub |impl |struct |println!/g, match => `<span style="color:#569cd6">${match}</span>`)
+                .replace(/".*?"/g, match => `<span style="color:#ce9178">${match}</span>`);
+
+            document.getElementById('code-view').innerHTML = coloredCode;
+            cmdInput.focus();
+        }
+
+        function printLine(html) {
+            const div = document.createElement('div');
+            div.className = 'cmd-output';
+            div.innerHTML = html;
+            outputDiv.appendChild(div);
+            terminalPane.scrollTop = terminalPane.scrollHeight;
+        }
+
+        function setPrompt(str) {
+            promptLabel.textContent = str;
+        }
+
+        function startGitHubPagination() {
+            isPaginating = true;
+            ghPage = 0;
+            printLine(`Encontrados ${backendRepos.length} repositórios públicos.<br>`);
+            renderGitHubPage();
+        }
+
+        function renderGitHubPage() {
+            const start = ghPage * 5;
+            const end = start + 5;
+            const pageRepos = backendRepos.slice(start, end);
+
+            pageRepos.forEach(repo => {
+                printLine(`* <b>${repo.name}</b> [${repo.lang}] - ${repo.desc} <span class="btn-tty" style="cursor:pointer; color:#7aa2f7;" onclick="openDetalhes(${repo.id})">[Detalhes]</span>`);
+            });
+
+            if (end < backendRepos.length) {
+                setPrompt("--MAIS--");
+            } else {
+                printLine("<br>Fim da lista.");
+                isPaginating = false;
+                setPrompt(DEFAULT_PROMPT);
+            }
+        }
+
+        function showStatusPopup(title, message, isError = false) {
+            const modal = document.getElementById('modal-status');
+            modal.style.display = 'block';
+
+            const titleEl = document.getElementById('status-title');
+            const bodyEl = document.getElementById('status-body');
+
+            titleEl.style.color = isError ? '#f7768e' : '#9ece6a';
+            titleEl.textContent = `[ ${title} ]`;
+            bodyEl.innerHTML = message;
+        }
+
+        function closeStatusModal() {
+            document.getElementById('modal-status').style.display = 'none';
+            cmdInput.focus();
+        }
+
+        function startWizard() {
+            wizardStep = 0;
+            wizardData.from = wizardData.subject = wizardData.body = '';
+            printLine("<br>--- MODO DE COMPOSIÇÃO DE E-MAIL ---");
+            setPrompt(WIZARD_STEPS[0].prompt);
+        }
+
+        async function finishWizard() {
+            wizardStep = null;
+
+            if (!wizardData.body.trim()) {
+                printLine("<span style='color:#f7768e;'>[✗] A mensagem está vazia. Abortado.</span>");
+                setPrompt(DEFAULT_PROMPT);
+                return;
+            }
+
+            isSending = true;
+            cmdInput.disabled = true;
+            setPrompt("ENVIANDO...");
+
+            const progressLine = document.createElement('div');
+            progressLine.className = 'cmd-output';
+            outputDiv.appendChild(progressLine);
+
+            let step = 0;
+            const totalBlocks = 12;
+            const progressInterval = setInterval(() => {
+                step = (step + 1) % (totalBlocks + 1);
+                const filled = "=".repeat(step);
+                const empty = " ".repeat(totalBlocks - step);
+                progressLine.innerHTML = `<span style="color:#e0af68;">A enviar pacotes SMTP... [${filled}&gt;${empty}]</span>`;
+                terminalPane.scrollTop = terminalPane.scrollHeight;
+            }, 120);
+
+            try {
+                const response = await fetch('/api/send-email', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(wizardData)
+                });
+
+                if (response.status === 429) {
+                    printLine("<span style='color:#e0af68;'>[!] Calma! Podes enviar outra mensagem daqui a alguns segundos.</span>");
+                    return;
+                }
+                if (!response.ok) {
+                    printLine(`<span style='color:#ff5f56;'>[Erro]: Servidor respondeu ${response.status}.</span>`);
+                    return;
+                }
+                
+                const data = await response.json();
+                
+                clearInterval(progressInterval);
+                progressLine.remove();
+
+                const isError = !response.ok || (data.output && (data.output.includes("Erro") || data.output.includes("error")));
+                
+                showStatusPopup(
+                    isError ? "FALHA NO ENVIO" : "E-MAIL ENVIADO",
+                    data.output || "Resposta recebida do servidor.",
+                    isError
+                );
+
+            } catch (err) {
+                clearInterval(progressInterval);
+                progressLine.remove();
+                showStatusPopup("ERRO DE REDE", "Não foi possível estabelecer ligação com o servidor.", true);
+            } finally {
+                isSending = false;
+                cmdInput.disabled = false;
+                setPrompt(DEFAULT_PROMPT);
+                cmdInput.focus();
+            }
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeSidePane();
+                closeStatusModal();
+            }
+        });
+
+        cmdInput.addEventListener('keydown', async (e) => {
+            if (e.ctrlKey && e.key.toLowerCase() === 'l') { e.preventDefault(); outputDiv.innerHTML = ''; return; }
+            if (e.key !== 'Enter') return;
+
+            const value = cmdInput.value.trim();
+            cmdInput.value = '';
+            typedText.textContent = ''; 
+
+            if (isPaginating) {
+                if (value.toLowerCase() === 'q') {
+                    isPaginating = false;
+                    setPrompt(DEFAULT_PROMPT);
+                    printLine("Saída da paginação.");
+                    return;
+                }
+                ghPage++;
+                renderGitHubPage();
+                return;
+            }
+
+            if (wizardStep !== null) {
+                if (value.toLowerCase() === ':q') {
+                    wizardStep = null;
+                    setPrompt(DEFAULT_PROMPT);
+                    printLine("Operação cancelada.");
+                    return;
+                }
+                
+                wizardData[WIZARD_STEPS[wizardStep].key] = value;
+                printLine(`${WIZARD_STEPS[wizardStep].prompt} ${value}`);
+                
+                wizardStep++;
+                if (wizardStep < WIZARD_STEPS.length) {
+                    setPrompt(WIZARD_STEPS[wizardStep].prompt);
+                } else {
+                    finishWizard();
+                }
+                return;
+            }
+
+            printLine(`<span class="prompt">${DEFAULT_PROMPT}</span> ${value}`);
+            if (!value) return;
+
+            if (value === 'clear') {
+                outputDiv.innerHTML = '';
+                return;
+            }
+
+            if (value === 'email') {
+                startWizard();
+                return;
+            }
+
+            try {
+                if (value === 'github') {
+                    printLine("<br>A ligar à API do GitHub... [AGUARDE]");
+                }
+
+                const endpoint = value === 'github' ? '/api/github' : '/api/cmd';
+
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ cmd: value })
+                });
+
+                if (response.status === 429) {
+                    printLine("<span style='color:#f7768e;'>[✗] Limite de taxa excedido (Too Many Requests). Por favor, aguarda um pouco.</span>");
+                    return;
+                }
+
+                const data = await response.json();
+
+                if (value === 'github') {
+                    try {
+                        backendRepos = JSON.parse(data.output);
+                        startGitHubPagination();
+                    } catch (e) {
+                        printLine("<span style='color:#f7768e;'>[Erro] Formato de dados do GitHub inválido recebido do servidor.</span>");
+                    }
+                } else {
+                    if (data.output) printLine(data.output);
+                }
+            } catch (err) {
+                printLine("<span style='color:#f7768e;'>[Erro] O núcleo de Rust não responde.</span>");
+            }
+        });
+    </script>
+</body>
+</html> --> -->

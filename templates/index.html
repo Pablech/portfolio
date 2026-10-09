@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <link rel="stylesheet" href="/assets/style.css">
+    <link rel="icon" type="image/png" href="/assets/favicon.svg">
+</head>
+<body onclick="document.getElementById('cmd-input').focus()">
+
+    <div id="terminal">
+        <div id="output">
+            <div class="cmd-output">Portfolio OS v1.0.0 (tty1)</div>
+            <div class="cmd-output">Escreve 'help' para veres os comandos disponiveis.</div>
+            <br>
+        </div>
+        
+        <div class="input-line" id="input-container">
+            <span class="prompt" id="prompt-label">pablech@portfolio:~\$</span>
+            <span id="typed-text"></span>
+            <span id="cursor-block"></span>
+            <input type="text" id="cmd-input" autocomplete="off" autofocus spellcheck="false" style="position:absolute; opacity:0; width:1px;">
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="overlay" onclick="closeAllModals()"></div>
+
+    <div id="modal-detalhes">
+        <div class="modal-header header-drag" id="header-detalhes">
+            <span id="detalhes-title">INFO DO REPOSITÓRIO</span>
+            <div class="win-controls">
+                <span class="win-btn" onclick="toggleMinimize('modal-detalhes', 'detalhes-body')">[-]</span>
+                <span class="win-btn" onclick="toggleMaximize('modal-detalhes')">[+]</span>
+                <span class="win-btn close-btn" onclick="closeAllModals()">[X]</span>
+            </div>
+        </div>
+        <div id="detalhes-body"></div>
+    </div>
+
+    <div id="modal-vscode">
+        <div class="vscode-header header-drag" id="header-vscode">
+            <div class="vscode-tabs">
+                <div class="vscode-tab" id="vscode-filename">ficheiro.rs</div>
+            </div>
+            <div class="win-controls">
+                <span class="win-btn" onclick="toggleMinimize('modal-vscode', 'vscode-code')">[-]</span>
+                <span class="win-btn" onclick="toggleMaximize('modal-vscode')">[+]</span>
+                <span class="win-btn close-btn" onclick="closeVSCode()">✖</span>
+            </div>
+        </div>
+        <div class="vscode-body" id="vscode-code">
+            // A carregar ficheiro...
+        </div>
+    </div>
+
+    <div id="modal-status" class="modal" style="display:none; border: 1px solid #7aa2f7; background: #1a1b26; padding: 20px; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 1000; min-width: 320px; max-width: 500px; box-shadow: 0 0 15px rgba(0,0,0,0.8);">
+        <div id="status-title" style="font-weight:bold; margin-bottom:12px; font-size: 1.1em;"></div>
+        <div id="status-body" style="margin-bottom:20px; line-height: 1.4; word-break: break-word;"></div>
+        <div style="text-align:right;">
+            <span class="btn-tty" onclick="closeStatusModal()" style="cursor:pointer; padding: 4px 8px; border: 1px solid; color:#7aa2f7;">[ FECHAR ]</span>
+        </div>
+    </div>
+
+    <script>
+        const cmdInput = document.getElementById('cmd-input');
+        const typedText = document.getElementById('typed-text');
+        const outputDiv = document.getElementById('output');
+        const promptLabel = document.getElementById('prompt-label');
+
+        const DEFAULT_PROMPT = 'pablech@portfolio:~\$';
+
+        let backendRepos = [];
+        let wizardStep = null;
+        const wizardData = { from: '', subject: '', body: '' };
+        const WIZARD_STEPS = [
+            { key: 'from', prompt: 'De (teu e-mail):' },
+            { key: 'subject', prompt: 'Assunto:' },
+            { key: 'body', prompt: 'Mensagem:' }
+        ];
+
+        let isPaginating = false;
+        let ghPage = 0;
+        let isSending = false;
+
+        cmdInput.addEventListener('input', () => {
+            typedText.textContent = cmdInput.value;
+        });
+
+        makeDraggable('modal-detalhes', 'header-detalhes');
+        makeDraggable('modal-vscode', 'header-vscode');
+
+        function makeDraggable(modalId, headerId) {
+            const modal = document.getElementById(modalId);
+            const header = document.getElementById(headerId);
+            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+
+            header.onmousedown = dragMouseDown;
+
+            function dragMouseDown(e) {
+                if (e.target.classList.contains('win-btn') || e.target.classList.contains('close-btn')) return;
+                
+                e.preventDefault();
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                document.onmouseup = closeDragElement;
+                document.onmousemove = elementDrag;
+            }
+
+            function elementDrag(e) {
+                e.preventDefault();
+                pos1 = pos3 - e.clientX;
+                pos2 = pos4 - e.clientY;
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                
+                let newTop = modal.offsetTop - pos2;
+                if (newTop < 0) newTop = 0;
+
+                modal.style.top = newTop + "px";
+                modal.style.left = (modal.offsetLeft - pos1) + "px";
+            }
+
+            function closeDragElement() {
+                document.onmouseup = null;
+                document.onmousemove = null;
+            }
+        }
+
+        function toggleMaximize(modalId) {
+            const modal = document.getElementById(modalId);
+            modal.classList.toggle('modal-maximized');
+        }
+
+        function toggleMinimize(modalId, bodyId) {
+            const body = document.getElementById(bodyId);
+            const modal = document.getElementById(modalId);
+            
+            if (body.style.display === 'none') {
+                body.style.display = '';
+                modal.style.height = modalId === 'modal-vscode' ? '500px' : 'auto'; 
+            } else {
+                body.style.display = 'none';
+                modal.style.height = 'auto';
+            }
+        }
+
+        function printLine(html) {
+            const div = document.createElement('div');
+            div.className = 'cmd-output';
+            div.innerHTML = html;
+            outputDiv.appendChild(div);
+            window.scrollTo(0, document.body.scrollHeight);
+        }
+
+        function setPrompt(str) {
+            promptLabel.textContent = str;
+        }
+
+        function startGitHubPagination() {
+            isPaginating = true;
+            ghPage = 0;
+            printLine(`Encontrados ${backendRepos.length} repositórios públicos.<br>`);
+            renderGitHubPage();
+        }
+
+        function renderGitHubPage() {
+            const start = ghPage * 5;
+            const end = start + 5;
+            const pageRepos = backendRepos.slice(start, end);
+
+            pageRepos.forEach(repo => {
+                printLine(`* <b>${repo.name}</b> [${repo.lang}] - ${repo.desc} <span class="btn-tty" onclick="openDetalhes(${repo.id})">[Detalhes]</span>`);
+            });
+
+            if (end < backendRepos.length) {
+                setPrompt("--MAIS--");
+            } else {
+                printLine("<br>Fim da lista.");
+                isPaginating = false;
+                setPrompt(DEFAULT_PROMPT);
+            }
+        }
+
+        function showStatusPopup(title, message, isError = false) {
+            document.getElementById('overlay').style.display = 'block';
+            const modal = document.getElementById('modal-status');
+            modal.style.display = 'block';
+
+            const titleEl = document.getElementById('status-title');
+            const bodyEl = document.getElementById('status-body');
+
+            titleEl.style.color = isError ? '#f7768e' : '#9ece6a';
+            titleEl.textContent = `[ ${title} ]`;
+            bodyEl.innerHTML = message;
+        }
+
+        function closeStatusModal() {
+            document.getElementById('overlay').style.display = 'none';
+            document.getElementById('modal-status').style.display = 'none';
+            cmdInput.focus();
+        }
+
+        function startWizard() {
+            wizardStep = 0;
+            wizardData.from = wizardData.subject = wizardData.body = '';
+            printLine("<br>--- MODO DE COMPOSIÇÃO DE E-MAIL ---");
+            setPrompt(WIZARD_STEPS[0].prompt);
+        }
+
+        async function finishWizard() {
+            wizardStep = null;
+
+            if (!wizardData.body.trim()) {
+                printLine("<span style='color:#f7768e;'>[✗] A mensagem está vazia. Abortado.</span>");
+                setPrompt(DEFAULT_PROMPT);
+                return;
+            }
+
+            isSending = true;
+            cmdInput.disabled = true;
+            setPrompt("ENVIANDO...");
+
+            const progressLine = document.createElement('div');
+            progressLine.className = 'cmd-output';
+            outputDiv.appendChild(progressLine);
+
+            let step = 0;
+            const totalBlocks = 12;
+            const progressInterval = setInterval(() => {
+                step = (step + 1) % (totalBlocks + 1);
+                const filled = "=".repeat(step);
+                const empty = " ".repeat(totalBlocks - step);
+                progressLine.innerHTML = `<span style="color:#e0af68;">A enviar pacotes SMTP... [${filled}&gt;${empty}]</span>`;
+                window.scrollTo(0, document.body.scrollHeight);
+            }, 120);
+
+            try {
+                const response = await fetch('/api/send-email', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(wizardData)
+                });
+
+                if (response.status === 429) {
+                    printLine("<span style='color:#e0af68;'>[!] Calma! Podes enviar outra mensagem daqui a alguns segundos.</span>");
+                    return;
+                }
+                if (!response.ok) {
+                    printLine(`<span style='color:#ff5f56;'>[Erro]: Servidor respondeu ${response.status}.</span>`);
+                    return;
+                }
+                
+                const data = await response.json();
+                
+                clearInterval(progressInterval);
+                progressLine.remove();
+
+                const isError = !response.ok || (data.output && (data.output.includes("Erro") || data.output.includes("error")));
+                
+                showStatusPopup(
+                    isError ? "FALHA NO ENVIO" : "E-MAIL ENVIADO",
+                    data.output || "Resposta recebida do servidor.",
+                    isError
+                );
+
+            } catch (err) {
+                clearInterval(progressInterval);
+                progressLine.remove();
+                showStatusPopup("ERRO DE REDE", "Não foi possível estabelecer ligação com o servidor.", true);
+            } finally {
+                isSending = false;
+                cmdInput.disabled = false;
+                setPrompt(DEFAULT_PROMPT);
+                cmdInput.focus();
+            }
+        }
+
+        function openDetalhes(repoId) {
+            const repo = backendRepos.find(r => r.id === repoId);
+            if (!repo) return;
+
+            document.getElementById('overlay').style.display = 'block';
+            const modal = document.getElementById('modal-detalhes');
+            modal.style.display = 'block';
+
+            document.getElementById('detalhes-title').textContent = `[ ROOT / ${repo.name} ]`;
+            
+            let filesHtml = repo.files.map((f, idx) => 
+                `|-- <span class="file-link" onclick="openVSCode(${repoId}, ${idx})">${f.name}</span>`
+            ).join('<br>');
+
+            document.getElementById('detalhes-body').innerHTML = `
+                <p>> <b>Linguagem:</b> ${repo.lang}</p>
+                <p>> <b>Descrição:</b> ${repo.desc}</p>
+                <p>> <b>Link:</b> <a href="${repo.url}" target="_blank" style="color:#7aa2f7; text-decoration:underline; text-underline-offset:4px;">${repo.url}</a></p>
+                <p>> <b>Árvore de Ficheiros Públicos:</b></p>
+                ${filesHtml}
+            `;
+        }
+
+        function openVSCode(repoId, fileIdx) {
+            const repo = backendRepos.find(r => r.id === repoId);
+            const file = repo.files[fileIdx];
+            
+            document.getElementById('modal-detalhes').style.display = 'none';
+            document.getElementById('modal-vscode').style.display = 'flex';
+            
+            document.getElementById('vscode-filename').textContent = file.name;
+            
+            const coloredCode = file.code
+                .replace(/fn |let |mut |pub |impl |struct |println!/g, match => `<span style="color:#569cd6">${match}</span>`)
+                .replace(/".*?"/g, match => `<span style="color:#ce9178">${match}</span>`);
+
+            document.getElementById('vscode-code').innerHTML = coloredCode;
+        }
+
+        function closeVSCode() {
+            document.getElementById('modal-vscode').style.display = 'none';
+            document.getElementById('modal-detalhes').style.display = 'block';
+        }
+
+        function closeAllModals() {
+            document.getElementById('overlay').style.display = 'none';
+            document.getElementById('modal-detalhes').style.display = 'none';
+            document.getElementById('modal-vscode').style.display = 'none';
+            cmdInput.focus();
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' || e.key === 'Enter') {
+                const statusModal = document.getElementById('modal-status');
+                if (statusModal && statusModal.style.display === 'block') {
+                    closeStatusModal();
+                    return;
+                }
+                closeAllModals();
+            }
+        });
+
+        cmdInput.addEventListener('keydown', async (e) => {
+            if (e.ctrlKey && e.key.toLowerCase() === 'l') { e.preventDefault(); outputDiv.innerHTML = ''; return; }
+            if (e.key !== 'Enter') return;
+
+            const value = cmdInput.value.trim();
+            cmdInput.value = '';
+            typedText.textContent = ''; 
+
+            if (isPaginating) {
+                if (value.toLowerCase() === 'q') {
+                    isPaginating = false;
+                    setPrompt(DEFAULT_PROMPT);
+                    printLine("Saída da paginação.");
+                    return;
+                }
+                ghPage++;
+                renderGitHubPage();
+                return;
+            }
+
+            if (wizardStep !== null) {
+                if (value.toLowerCase() === ':q') {
+                    wizardStep = null;
+                    setPrompt(DEFAULT_PROMPT);
+                    printLine("Operação cancelada.");
+                    return;
+                }
+                
+                wizardData[WIZARD_STEPS[wizardStep].key] = value;
+                printLine(`${WIZARD_STEPS[wizardStep].prompt} ${value}`);
+                
+                wizardStep++;
+                if (wizardStep < WIZARD_STEPS.length) {
+                    setPrompt(WIZARD_STEPS[wizardStep].prompt);
+                } else {
+                    finishWizard();
+                }
+                return;
+            }
+
+            printLine(`<span class="prompt">${DEFAULT_PROMPT}</span> ${value}`);
+            if (!value) return;
+
+            if (value === 'clear') {
+                outputDiv.innerHTML = '';
+                return;
+            }
+
+            if (value === 'email') {
+                startWizard();
+                return;
+            }
+
+            try {
+                if (value === 'github') {
+                    printLine("<br>A ligar à API do GitHub... [AGUARDE]");
+                }
+
+                // 1. Decide dinamicamente a qual rota bater consoante o comando
+                const endpoint = value === 'github' ? '/api/github' : '/api/cmd';
+
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ cmd: value })
+                });
+
+                // 2. Proteção visual de Rate Limit
+                if (response.status === 429) {
+                    printLine("<span style='color:#f7768e;'>[✗] Limite de taxa excedido (Too Many Requests). Por favor, aguarda um pouco antes de tentar novamente.</span>");
+                    return; // Interrompe para não tentar ler JSON que não existe
+                }
+
+                const data = await response.json();
+
+                if (value === 'github') {
+                    try {
+                        backendRepos = JSON.parse(data.output);
+                        startGitHubPagination();
+                    } catch (e) {
+                        printLine("<span style='color:#f7768e;'>[Erro] Formato de dados do GitHub inválido recebido do servidor.</span>");
+                    }
+                } else {
+                    if (data.output) printLine(data.output);
+                }
+            } catch (err) {
+                printLine("<span style='color:#f7768e;'>[Erro] O núcleo de Rust não responde.</span>");
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!-- Fundo preto do terminal -->
+  <rect width="32" height="32" fill="#050505"/>
+  <!-- O símbolo de maior que (>) -->
+  <text x="4" y="23" font-family="'Courier New', Courier, monospace" font-weight="bold" font-size="20" fill="#00ff00">&gt;</text>
+  <!-- O cursor em bloco piscando/estático -->
+  <rect x="18" y="14" width="10" height="4" fill="#00ff00"/>
+</svg>
