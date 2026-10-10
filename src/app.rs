@@ -66,10 +66,6 @@ pub fn create_router(gh: Arc<GitHub>, env: Arc<EnvSetting>) -> Router {
         .route("/api/github", post(github_handler)
             .layer(GovernorLayer {config: gh_conf}))
         .layer(middleware::from_fn(log_rate_limit))
-        // .layer(TraceLayer::new_for_http()
-        //     .make_span_with(make_span)
-        //     .on_request(on_request)
-        //     .on_response(on_response))
         .layer(middleware::from_fn(request_logger))
         .nest_service("/assets", serve_assets).with_state(state)
 }
