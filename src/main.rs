@@ -17,21 +17,23 @@ use core::env_settings::EnvSetting;
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     let filter = Targets::new()
-        .with_target("site", Level::DEBUG)
-        .with_target("tower_http", Level::DEBUG)
-        .with_target("reqwest", Level::DEBUG);
+        .with_target("site", Level::INFO)
+        .with_target("tower_http", Level::INFO)
+        .with_target("reqwest", Level::INFO);
     
     let file_appender = tracing_appender::rolling::daily("logs", "portfolio.logs");
     let (filter_writer, _guard) = tracing_appender::non_blocking(file_appender);
 
     tracing_subscriber::registry()
-        .with(filter).with(fmt::layer().with_target(false))
+        .with(filter).with(
+            fmt::layer().with_target(false)
+            .with_file(false).with_line_number(false).compact())
         .with(fmt::layer().with_ansi(false).with_writer(filter_writer)).init();
 
     let env = EnvSetting::new();
     let httpc = HttpC::new(&env);
 
-    if !httpc.ready() {warn!("HttpC is not ready"); std::process::exit(1);}
+    if !httpc.ready() {warn!("HttpC is not ready"); return Err("HttpC not ready".into());}
 
     let gh = GitHub::new(&env, &httpc);
     let shared_gh = Arc::new(gh);

@@ -1,6 +1,9 @@
-use std::sync::Arc;
+use std::{sync::Arc,};
 use axum::{
-    Router, extract::{FromRef, Request}, http::StatusCode, middleware::{self, Next}, response::Response, routing::{get, post}
+    Router, 
+    extract::FromRef, 
+    middleware::self, 
+    routing::{get, post}
 };
 use tower_http::services::ServeDir;
 use tower_governor::{
@@ -8,12 +11,14 @@ use tower_governor::{
     GovernorLayer,
     key_extractor::SmartIpKeyExtractor
 };
-use tower_http::trace::{TraceLayer, DefaultMakeSpan, DefaultOnRequest, DefaultOnResponse};
-use tracing::{warn, Level};
 
 use crate::repositories::github::github::GitHub;
-use crate::handlers::{home_handler, command_handler, send_email_handler, github_handler,};// debug_headers};
+use crate::handlers::{
+    home_handler, command_handler, 
+    send_email_handler, github_handler,
+};// debug_headers};
 use crate::core::env_settings::EnvSetting;
+use crate::core::log_conf::{log_rate_limit, request_logger};
 
 #[derive(Clone)]
 pub struct AppState {
@@ -31,21 +36,6 @@ impl FromRef<AppState> for Arc<EnvSetting> {
     fn from_ref(state: &AppState) -> Arc<EnvSetting> {
         state.env.clone()
     }
-}
-
-pub async fn log_rate_limit(req: Request, next: Next) -> Response {
-
-    let ip = req.headers().get("cf-connecting-ip")
-        .and_then(|v| v.to_str().ok())
-        .unwrap_or("default").to_string();
-    let path = req.uri().path().to_string();
-
-    let response = next.run(req).await;
-
-    if response.status() == StatusCode::TOO_MANY_REQUESTS {
-        warn!("rate limit: IP {} on {}", ip, path);
-    }
-    response
 }
 
 pub fn create_router(gh: Arc<GitHub>, env: Arc<EnvSetting>) -> Router {
@@ -76,9 +66,10 @@ pub fn create_router(gh: Arc<GitHub>, env: Arc<EnvSetting>) -> Router {
         .route("/api/github", post(github_handler)
             .layer(GovernorLayer {config: gh_conf}))
         .layer(middleware::from_fn(log_rate_limit))
-        .layer(TraceLayer::new_for_http()
-            .make_span_with(DefaultMakeSpan::new().include_headers(true))
-            .on_request(DefaultOnRequest::new().level(Level::INFO))
-            .on_response(DefaultOnResponse::new().level(Level::INFO)))
+        // .layer(TraceLayer::new_for_http()
+        //     .make_span_with(make_span)
+        //     .on_request(on_request)
+        //     .on_response(on_response))
+        .layer(middleware::from_fn(request_logger))
         .nest_service("/assets", serve_assets).with_state(state)
 }
