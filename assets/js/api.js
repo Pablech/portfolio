@@ -1,10 +1,10 @@
 export async function fetchHelp() {
-    const response = await fetch('/api/help');
+    const response = await fetch('/api/help', {cache: 'no-store'});
     return response.json();
 }
 
 export async function fetchGitHub() {
-    const response = await fetch('/api/github');
+    const response = await fetch('/api/github', {cache: 'no-store'});
     return response.json();
 }
 

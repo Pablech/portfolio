@@ -40,8 +40,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let shared_env = Arc::new(env);
 
     let app = app::create_router(shared_gh, shared_env, );
-    let addr  = "localhost:3000";
-    tracing::debug!("Listening on: {}", addr);
+    let addr  = "0.0.0.0:3000";
+    tracing::info!("Listening on: {}", addr);
     let listener = TcpListener::bind(addr).await?;
 
     axum::serve(

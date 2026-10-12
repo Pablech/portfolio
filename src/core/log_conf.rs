@@ -24,6 +24,10 @@ pub async fn log_rate_limit(req: Request, next: Next) -> Response {
 pub async fn request_logger(req: Request, next: Next) -> Response {
     let method = req.method().clone();
     let uri = req.uri().clone();
+
+    let ip = req.headers().get("cf-connecting-ip")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("default").to_string();
     
     let ua: String = req.headers()
         .get("user-agent")
@@ -42,9 +46,10 @@ pub async fn request_logger(req: Request, next: Next) -> Response {
         method = %method,
         status = %status,
         latency_ms = latency.as_millis() as u64,
+        ip = &ip,
         uri = %uri,
         user_agent = %ua,
-        "http request"
+        "http"
     );
 
     response
