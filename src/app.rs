@@ -23,7 +23,9 @@ use crate::handlers::{
 };
 use crate::core::{
     env_settings::EnvSetting,
-    log_conf::{log_rate_limit, request_logger}
+    log_conf::{log_rate_limit, request_logger},
+    tartip::tarpit_scanners,
+    ddos_protect::TarpitState,
 };
 
 
@@ -48,6 +50,7 @@ impl FromRef<AppState> for Arc<EnvSetting> {
 pub fn create_router(gh: Arc<GitHub>, env: Arc<EnvSetting>, ) -> Router {
     let serve_assets = ServeDir::new("assets");
     let state = AppState { gh, env, };
+    let tarpit = Arc::new(TarpitState::new());
 
     let create_rate_limit = |per_sec: u64, burst: u32| {
         Box::leak(Box::new(
@@ -76,7 +79,8 @@ pub fn create_router(gh: Arc<GitHub>, env: Arc<EnvSetting>, ) -> Router {
         .route("/api/github", get(github_handler)
             .layer(GovernorLayer {config: gh_conf}))
 
-        .layer(middleware::from_fn(log_rate_limit))
-        .layer(middleware::from_fn(request_logger))
+            .layer(middleware::from_fn(request_logger))
+            .layer(middleware::from_fn(log_rate_limit))
+            .layer(middleware::from_fn_with_state(tarpit.clone(), tarpit_scanners))
         .nest_service("/assets", serve_assets).with_state(state)
 }
