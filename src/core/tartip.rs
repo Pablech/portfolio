@@ -8,7 +8,10 @@ use std::sync::Arc;
 use tokio::time::{sleep, Duration};
 use rand::Rng;
 
-use crate::core::ddos_protect::TarpitState;
+use crate::core::{
+    ddos_protect::TarpitState,
+    get_ip::get_ip,
+};
 
 pub async fn tarpit_scanners(State(tarpit): State<Arc<TarpitState>>,
         req: Request<axum::body::Body>, next: Next, ) -> Response {
@@ -22,11 +25,7 @@ pub async fn tarpit_scanners(State(tarpit): State<Arc<TarpitState>>,
         || path.contains(".git");
 
     if is_probe {
-        let ip = req.headers()
-            .get("cf-connecting-ip")
-            .and_then(|v| v.to_str().ok())
-            .unwrap_or("unknown")
-            .to_string();
+        let ip = get_ip(&req);
 
         if tarpit.is_blocked(&ip) {
             tracing::warn!("TARPIT: {} já visitou recentemente, {}", ip,
@@ -34,10 +33,21 @@ pub async fn tarpit_scanners(State(tarpit): State<Arc<TarpitState>>,
             );
             return StatusCode::SERVICE_UNAVAILABLE.into_response();
         }
+        
+        if ip != "unknown" {
+            if tarpit.is_blocked(&ip) {
+                tracing::warn!(
+                    "TARPIT: {} já visitou recentemente, {}",
+                    ip,
+                    StatusCode::SERVICE_UNAVAILABLE
+                );
+                return StatusCode::SERVICE_UNAVAILABLE.into_response();
+            }
 
-        tarpit.block(&ip);
+            tarpit.block(&ip);
+        }
 
-        let delay_seconds = rand::thread_rng().gen_range(25..=50);
+        let delay_seconds = rand::thread_rng().gen_range(50..=120);
         tracing::warn!(
             "TARPIT: Scanner {} capturado em {} - delay de {}s",
             ip, path, delay_seconds

@@ -6,11 +6,11 @@ use axum::{
 };
 use tracing::{warn, info};
 
+use crate::core::get_ip::get_ip;
+
 pub async fn log_rate_limit(req: Request, next: Next) -> Response {
 
-    let ip = req.headers().get("cf-connecting-ip")
-        .and_then(|v| v.to_str().ok())
-        .unwrap_or("default").to_string();
+    let ip = get_ip(&req);
     let path = req.uri().path().to_string();
 
     let response = next.run(req).await;
@@ -25,9 +25,7 @@ pub async fn request_logger(req: Request, next: Next) -> Response {
     let method = req.method().clone();
     let uri = req.uri().clone();
 
-    // let ip = req.headers().get("cf-connecting-ip")
-    //     .and_then(|v| v.to_str().ok())
-    //     .unwrap_or("default").to_string();
+    // let ip = get_ip(&req);
     
     // let ua: String = req.headers()
     //     .get("user-agent")
