@@ -14,11 +14,17 @@ use tower_governor::{
 
 use crate::repositories::github::github::GitHub;
 use crate::handlers::{
-    home_handler, command_handler, 
-    send_email_handler, github_handler,
-};// debug_headers};
-use crate::core::env_settings::EnvSetting;
-use crate::core::log_conf::{log_rate_limit, request_logger};
+    hand_help::help_handler,
+    hand_github::github_handler,
+    hand_email::send_email_handler,
+    hand_home::home_handler,
+    // hand_debug::debug_headers,
+};
+use crate::core::{
+    env_settings::EnvSetting,
+    log_conf::{log_rate_limit, request_logger}
+};
+
 
 #[derive(Clone)]
 pub struct AppState {
@@ -38,9 +44,9 @@ impl FromRef<AppState> for Arc<EnvSetting> {
     }
 }
 
-pub fn create_router(gh: Arc<GitHub>, env: Arc<EnvSetting>) -> Router {
+pub fn create_router(gh: Arc<GitHub>, env: Arc<EnvSetting>, ) -> Router {
     let serve_assets = ServeDir::new("assets");
-    let state = AppState { gh, env };
+    let state = AppState { gh, env, };
 
     let create_rate_limit = |per_sec: u64, burst: u32| {
         Box::leak(Box::new(
@@ -52,19 +58,21 @@ pub fn create_router(gh: Arc<GitHub>, env: Arc<EnvSetting>) -> Router {
         )
     };
 
-    let cmd_conf = create_rate_limit(1, 10);
     let gh_conf = create_rate_limit(1, 5);
     let email_conf = create_rate_limit(1, 2);
 
     Router::new()
         .route("/", get(home_handler))
+
+        .route("/api/help", get(help_handler))
+
         // .route("/debug/headers", get(debug_headers))
-        .route("/api/cmd", post(command_handler)
-                .layer(GovernorLayer {config: cmd_conf}))
         .route("/api/send-email", post(send_email_handler)
                 .layer(GovernorLayer {config: email_conf}))
-        .route("/api/github", post(github_handler)
+
+        .route("/api/github", get(github_handler)
             .layer(GovernorLayer {config: gh_conf}))
+
         .layer(middleware::from_fn(log_rate_limit))
         .layer(middleware::from_fn(request_logger))
         .nest_service("/assets", serve_assets).with_state(state)

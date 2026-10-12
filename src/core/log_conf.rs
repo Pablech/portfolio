@@ -40,9 +40,9 @@ pub async fn request_logger(req: Request, next: Next) -> Response {
 
     info!(
         method = %method,
-        uri = %uri,
         status = %status,
         latency_ms = latency.as_millis() as u64,
+        uri = %uri,
         user_agent = %ua,
         "http request"
     );

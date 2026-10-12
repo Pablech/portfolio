@@ -2,6 +2,7 @@ use axum::http::HeaderValue;
 use reqwest::{Method, header::{HeaderMap, AUTHORIZATION, USER_AGENT, ACCEPT}};
 use serde_json::from_value;
 use base64::{Engine as _, engine::general_purpose};
+use tracing::warn;
 
 use crate::repositories::httpc::httpc::HttpC;
 use crate::core::env_settings::EnvSetting;
@@ -107,7 +108,7 @@ impl GitHub {
         let repos = match self.fetch_repos(false).await {
             Ok(r) => r,
             Err(e) => {
-                println!("Erro ao buscar repos: {}", e);
+                warn!("Erro ao buscar repos: {}", e);
                 return "[]".to_string(); 
             }
         };
