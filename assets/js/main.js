@@ -1,5 +1,48 @@
 import { fetchHelp, fetchGitHub, sendEmail } from './api.js';
-import { makeDraggable, toggleMaximize, toggleMinimize, showStatusPopup, closeAllModals } from './modals.js';
+import { showStatusPopup, initSplitScreen, openSidePanel, closeSidePanel } from './modals.js';
+
+const savedTheme = localStorage.getItem('portfolio_theme') || 'tty';
+document.body.className = `theme-${savedTheme}`;
+
+initSplitScreen();
+
+window.closeSidePanel = closeSidePanel;
+window.closeStatusModal = () => {
+    document.getElementById('modal-status').style.display = 'none';
+    cmdInput.focus();
+};
+
+window.openDetalhes = function(repoId) {
+    const repo = backendRepos.find(r => r.id === repoId);
+    if (!repo) return;
+
+    let filesHtml = repo.files.map((f, idx) => 
+        `|-- <span class="file-link" onclick="openVSCode(${repoId}, ${idx})">${f.name}</span>`
+    ).join('<br>');
+
+    const content = `
+        <p>> <b>Linguagem:</b> ${repo.lang}</p>
+        <p>> <b>Descrição:</b> ${repo.desc}</p>
+        <p>> <b>Link:</b> <a href="${repo.url}" target="_blank" style="color:var(--tty-color); text-decoration:underline;">${repo.url}</a></p>
+        <p>> <b>Árvore de Ficheiros:</b></p>
+        ${filesHtml}
+    `;
+
+    openSidePanel(`[ ROOT / ${repo.name} ]`, content, null);
+};
+
+window.openVSCode = function(repoId, fileIdx) {
+    const repo = backendRepos.find(r => r.id === repoId);
+    const file = repo.files[fileIdx];
+    
+    const coloredCode = file.code
+        .replace(/fn |let |mut |pub |impl |struct |println!/g, match => `<span style="font-weight:bold;">${match}</span>`)
+        .replace(/".*?"/g, match => `<span>${match}</span>`);
+
+    openSidePanel(file.name, `<pre style="margin:0; font-family:monospace; color:var(--tty-color);">${coloredCode}</pre>`, () => {
+        window.openDetalhes(repoId);
+    });
+};
 
 const cmdInput = document.getElementById('cmd-input');
 const typedText = document.getElementById('typed-text');
@@ -24,21 +67,6 @@ let isSending = false;
 cmdInput.addEventListener('input', () => {
     typedText.textContent = cmdInput.value;
 });
-
-makeDraggable('modal-detalhes', 'header-detalhes');
-makeDraggable('modal-vscode', 'header-vscode');
-
-window.toggleMinimize = toggleMinimize;
-window.toggleMaximize = toggleMaximize;
-window.closeAllModals = () => closeAllModals(cmdInput);
-window.closeStatusModal = () => {
-    document.getElementById('overlay').style.display = 'none';
-    document.getElementById('modal-status').style.display = 'none';
-    cmdInput.focus();
-};
-window.openDetalhes = openDetalhes;
-window.openVSCode = openVSCode;
-window.closeVSCode = closeVSCode;
 
 function printLine(html) {
     const div = document.createElement('div');
@@ -80,7 +108,7 @@ function renderGitHubPage() {
 function startWizard() {
     wizardStep = 0;
     wizardData.from = wizardData.subject = wizardData.body = '';
-    printLine("<br>--- MODO DE COMPOSIÇÃO DE E-MAIL ---");
+    printLine("<br>--- MODO DE COMPOSIÇÃO DE E-MAIL (Digita '-q' para cancelar) ---");
     setPrompt(WIZARD_STEPS[0].prompt);
 }
 
@@ -88,7 +116,7 @@ async function finishWizard() {
     wizardStep = null;
 
     if (!wizardData.body.trim()) {
-        printLine("<span style='color:#f7768e;'>[✗] A mensagem está vazia. Abortado.</span>");
+        printLine("<span style='color:red;'>[✗] A mensagem está vazia. Abortado.</span>");
         setPrompt(DEFAULT_PROMPT);
         return;
     }
@@ -107,7 +135,7 @@ async function finishWizard() {
         step = (step + 1) % (totalBlocks + 1);
         const filled = "=".repeat(step);
         const empty = " ".repeat(totalBlocks - step);
-        progressLine.innerHTML = `<span style="color:#e0af68;">A enviar pacotes SMTP... [${filled}&gt;${empty}]</span>`;
+        progressLine.innerHTML = `<span style="color:var(--tty-color);">A enviar pacotes SMTP... [${filled}&gt;${empty}]</span>`;
         window.scrollTo(0, document.body.scrollHeight);
     }, 120);
 
@@ -115,11 +143,11 @@ async function finishWizard() {
         const response = await sendEmail(wizardData);
 
         if (response.status === 429) {
-            printLine("<span style='color:#e0af68;'>[!] Calma! Podes enviar outra mensagem daqui a alguns segundos.</span>");
+            printLine("<span style='color:red;'>[!] Calma! Podes enviar outra mensagem daqui a alguns segundos.</span>");
             return;
         }
         if (!response.ok) {
-            printLine(`<span style='color:#ff5f56;'>[Erro]: Servidor respondeu ${response.status}.</span>`);
+            printLine(`<span style='color:red;'>[Erro]: Servidor respondeu ${response.status}.</span>`);
             return;
         }
         
@@ -142,47 +170,6 @@ async function finishWizard() {
     }
 }
 
-function openDetalhes(repoId) {
-    const repo = backendRepos.find(r => r.id === repoId);
-    if (!repo) return;
-
-    document.getElementById('overlay').style.display = 'block';
-    document.getElementById('modal-detalhes').style.display = 'block';
-    document.getElementById('detalhes-title').textContent = `[ ROOT / ${repo.name} ]`;
-    
-    let filesHtml = repo.files.map((f, idx) => 
-        `|-- <span class="file-link" onclick="openVSCode(${repoId}, ${idx})">${f.name}</span>`
-    ).join('<br>');
-
-    document.getElementById('detalhes-body').innerHTML = `
-        <p>> <b>Linguagem:</b> ${repo.lang}</p>
-        <p>> <b>Descrição:</b> ${repo.desc}</p>
-        <p>> <b>Link:</b> <a href="${repo.url}" target="_blank" style="color:#7aa2f7; text-decoration:underline; text-underline-offset:4px;">${repo.url}</a></p>
-        <p>> <b>Árvore de Ficheiros:</b></p>
-        ${filesHtml}
-    `;
-}
-
-function openVSCode(repoId, fileIdx) {
-    const repo = backendRepos.find(r => r.id === repoId);
-    const file = repo.files[fileIdx];
-    
-    document.getElementById('modal-detalhes').style.display = 'none';
-    document.getElementById('modal-vscode').style.display = 'flex';
-    document.getElementById('vscode-filename').textContent = file.name;
-    
-    const coloredCode = file.code
-        .replace(/fn |let |mut |pub |impl |struct |println!/g, match => `<span style="color:#569cd6">${match}</span>`)
-        .replace(/".*?"/g, match => `<span style="color:#ce9178">${match}</span>`);
-
-    document.getElementById('vscode-code').innerHTML = coloredCode;
-}
-
-function closeVSCode() {
-    document.getElementById('modal-vscode').style.display = 'none';
-    document.getElementById('modal-detalhes').style.display = 'block';
-}
-
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' || e.key === 'Enter') {
         const statusModal = document.getElementById('modal-status');
@@ -190,7 +177,6 @@ document.addEventListener('keydown', (e) => {
             window.closeStatusModal();
             return;
         }
-        closeAllModals(cmdInput);
     }
 });
 
@@ -215,10 +201,10 @@ cmdInput.addEventListener('keydown', async (e) => {
     }
 
     if (wizardStep !== null) {
-        if (value.toLowerCase() === ':q') {
+        if (value.toLowerCase() === '-q') {
             wizardStep = null;
             setPrompt(DEFAULT_PROMPT);
-            printLine("Operação cancelada.");
+            printLine("<span style='color:red;'>[!] Envio de e-mail cancelado pelo utilizador.</span>");
             return;
         }
         
@@ -247,6 +233,26 @@ cmdInput.addEventListener('keydown', async (e) => {
         return;
     }
 
+    if (value.startsWith('theme ')) {
+        const themeName = value.split(' ')[1];
+        if (themeName === 'tty' || themeName === 'retro') {
+            document.body.className = 'theme-tty';
+            localStorage.setItem('portfolio_theme', 'tty');
+            printLine("Tema alterado para: TTY Retrô (Preto/Verde - Padrão).");
+        } else if (themeName === 'white') {
+            document.body.className = 'theme-white';
+            localStorage.setItem('portfolio_theme', 'white');
+            printLine("Tema alterado para: Branco (Fundo branco e letra preta).");
+        } else if (themeName === 'tty-new' || themeName === 'new') {
+            document.body.className = 'theme-tty-new';
+            localStorage.setItem('portfolio_theme', 'tty-new');
+            printLine("Tema alterado para: TTY New (Preto e Branco).");
+        } else {
+            printLine("<span style='color:red;'>Tema desconhecido. Utiliza: 'theme tty', 'theme white' ou 'theme tty-new'</span>");
+        }
+        return;
+    }
+
     try {
         if (value === 'help') {
             const data = await fetchHelp();
@@ -265,7 +271,7 @@ cmdInput.addEventListener('keydown', async (e) => {
                 backendRepos = JSON.parse(data.output);
                 startGitHubPagination();
             } catch (e) {
-                printLine("<span style='color:#f7768e;'>[Erro] Formato de dados do GitHub inválido ou falha na rede.</span>");
+                printLine("<span style='color:red;'>[Erro] Formato de dados do GitHub inválido ou falha na rede.</span>");
                 setPrompt(DEFAULT_PROMPT);
             } finally {
                 cmdInput.disabled = false;
@@ -274,8 +280,8 @@ cmdInput.addEventListener('keydown', async (e) => {
             return;
         }
 
-        printLine(`<span style='color:#f7768e;'>Comando não encontrado: <${value}>. Digita 'help' para ajuda.</span>`);
+        printLine(`<span style='color:red;'>Comando não encontrado: <${value}>. Digita 'help' para ajuda.</span>`);
     } catch (err) {
-        printLine("<span style='color:#f7768e;'>[Erro] O núcleo de Rust não responde.</span>");
+        printLine("<span style='color:red;'>[Erro] O núcleo de Rust não responde.</span>");
     }
 });

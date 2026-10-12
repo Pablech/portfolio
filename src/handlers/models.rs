@@ -18,4 +18,5 @@ pub struct SenfEmailReq {
 #[template(path = "index.html")]
 pub struct PortfolioTemplate {
     pub title: String,
+    pub timestamp: i64,
 }
