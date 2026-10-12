@@ -15,3 +15,8 @@ export async function sendEmail(wizardData) {
         body: JSON.stringify(wizardData)
     });
 }
+
+export async function fetchAbout() {
+    const response = await fetch('/api/about', {cache: 'no-store'});
+    return response.json();
+}

@@ -65,6 +65,7 @@ impl GitHub {
         let mut header = HeaderMap::new();
         header.insert(USER_AGENT, HeaderValue::from_str(&self.user_agent)?);
         header.insert(ACCEPT, HeaderValue::from_str(&self.acept)?);
+        header.insert(AUTHORIZATION, HeaderValue::from_str(&self.auth_value)?);
 
         let response = &self.httpc.request(
             Method::GET, 
@@ -92,6 +93,7 @@ impl GitHub {
         let mut header = HeaderMap::new();
         header.insert(USER_AGENT, HeaderValue::from_str(&self.user_agent)?);
         header.insert(ACCEPT, HeaderValue::from_str(&self.acept)?);
+        header.insert(AUTHORIZATION, HeaderValue::from_str(&self.auth_value)?);
 
         let response = &self.httpc.request(
             Method::GET, 

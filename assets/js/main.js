@@ -1,4 +1,4 @@
-import { fetchHelp, fetchGitHub, sendEmail } from './api.js';
+import { fetchHelp, fetchGitHub, sendEmail, fetchAbout } from './api.js';
 import { showStatusPopup, initSplitScreen, openSidePanel, closeSidePanel } from './modals.js';
 
 const savedTheme = localStorage.getItem('portfolio_theme') || 'tty';
@@ -78,6 +78,11 @@ function printLine(html) {
 
 function setPrompt(str) {
     promptLabel.textContent = str;
+}
+
+function escapeHtml(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 function startGitHubPagination() {
@@ -238,15 +243,12 @@ cmdInput.addEventListener('keydown', async (e) => {
         if (themeName === 'tty' || themeName === 'retro') {
             document.body.className = 'theme-tty';
             localStorage.setItem('portfolio_theme', 'tty');
-            printLine("Tema alterado para: TTY Retrô (Preto/Verde - Padrão).");
         } else if (themeName === 'white') {
             document.body.className = 'theme-white';
             localStorage.setItem('portfolio_theme', 'white');
-            printLine("Tema alterado para: Branco (Fundo branco e letra preta).");
         } else if (themeName === 'tty-new' || themeName === 'new') {
             document.body.className = 'theme-tty-new';
             localStorage.setItem('portfolio_theme', 'tty-new');
-            printLine("Tema alterado para: TTY New (Preto e Branco).");
         } else {
             printLine("<span style='color:red;'>Tema desconhecido. Utiliza: 'theme tty', 'theme white' ou 'theme tty-new'</span>");
         }
@@ -276,6 +278,18 @@ cmdInput.addEventListener('keydown', async (e) => {
             } finally {
                 cmdInput.disabled = false;
                 cmdInput.focus();
+            }
+            return;
+        }
+
+        if (value === 'about') {
+            try {
+                const data = await fetchAbout();
+                openSidePanel('[ SOBRE / ABOUT ]',
+                    `<pre style="margin:0; font-family:inherit; white-space:pre-wrap;">${escapeHtml(data.output)}</pre>`,
+                    null);
+            } catch (e) {
+                printLine("<span style='color:red;'>[Erro] O núcleo de Rust não responde.</span>");
             }
             return;
         }
