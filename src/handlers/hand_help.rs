@@ -1,4 +1,5 @@
 use axum::{http::header, Json};
+
 use crate::handlers::models::BasicRes;
 
 pub async fn help_handler() -> ([(header::HeaderName, &'static str); 1], Json<BasicRes>) {
@@ -10,6 +11,7 @@ pub async fn help_handler() -> ([(header::HeaderName, &'static str); 1], Json<Ba
             \ttheme tty      - Altera para o tema TTY Retrô (Preto/Verde - Padrão)\n  \
             \ttheme white    - Altera para o tema Branco (Fundo branco / Letra preta)\n  \
             \ttheme tty-new  - Altera para o tema TTY New (Preto / Letra branca)\n  \
+        about      - Quem sou eu e o que ando a construir\n  \
         clear      - Limpa o terminal";
     
     ([(header::CACHE_CONTROL, "no-store")], Json(BasicRes { output: help.to_string() }))

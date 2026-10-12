@@ -18,6 +18,7 @@ use crate::handlers::{
     hand_github::github_handler,
     hand_email::send_email_handler,
     hand_home::home_handler,
+    hand_about_me::about_handler,
     // hand_debug::debug_headers,
 };
 use crate::core::{
@@ -65,6 +66,8 @@ pub fn create_router(gh: Arc<GitHub>, env: Arc<EnvSetting>, ) -> Router {
         .route("/", get(home_handler))
 
         .route("/api/help", get(help_handler))
+
+        .route("/api/about", get(about_handler))
 
         // .route("/debug/headers", get(debug_headers))
         .route("/api/send-email", post(send_email_handler)
