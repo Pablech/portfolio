@@ -1,0 +1,33 @@
+2026-10-12T00:00:20.127366Z  INFO site::core::log_conf: http request method=POST uri=/api/c4/room/cpu status=200 OK latency_ms=0 user_agent=curl/8.22.0
+2026-10-12T00:00:55.628813Z  INFO site::core::log_conf: http request method=GET uri=/api/c4/ws/1b1687d6?token=e437f15d930d4845bdf960d7e56a9e35 status=101 Switching Protocols latency_ms=0 user_agent=-
+2026-10-12T00:04:20.145144Z  INFO site::core::log_conf: http request method=POST uri=/api/c4/room/cpu status=200 OK latency_ms=0 user_agent=curl/8.22.0
+2026-10-12T00:05:21.764501Z  INFO site::core::log_conf: http request method=GET uri=/api/c4/ws/4d898740?token=1aa7878f1cb542f7a6834d8ae34deb8b status=101 Switching Protocols latency_ms=0 user_agent=-
+2026-10-12T00:09:06.330203Z  INFO site::core::log_conf: http request method=POST uri=/api/c4/room/cpu status=200 OK latency_ms=0 user_agent=curl/8.22.0
+2026-10-12T00:09:55.470393Z  INFO site::core::log_conf: http request method=GET uri=/api/c4/ws/b1a4254f?token=a5c273580c06485ba9a106173c3911dd status=101 Switching Protocols latency_ms=0 user_agent=-
+2026-10-12T00:11:30.778795Z  INFO site::core::log_conf: http request method=POST uri=/api/c4/room status=200 OK latency_ms=0 user_agent=curl/8.22.0
+2026-10-12T00:12:10.651227Z  INFO site::core::log_conf: http request method=POST uri=/api/c4/room/d93fd7a1/join status=200 OK latency_ms=0 user_agent=curl/8.22.0
+2026-10-12T00:13:01.423132Z  INFO site::core::log_conf: http request method=GET uri=/api/c4/ws/d93fd7a1?49e795535abe460eb296344a296927c3 status=400 Bad Request latency_ms=0 user_agent=-
+2026-10-12T00:14:22.171681Z  INFO site::core::log_conf: http request method=POST uri=/api/c4/room status=200 OK latency_ms=0 user_agent=curl/8.22.0
+2026-10-12T00:15:00.535170Z  INFO site::core::log_conf: http request method=GET uri=/api/c4/ws/4174955f?token=2e971d4fa49540a3a7a7d036daa80339 status=101 Switching Protocols latency_ms=0 user_agent=-
+2026-10-12T00:15:35.044595Z  INFO site::core::log_conf: http request method=POST uri=/api/c4/room/4174955f/join status=200 OK latency_ms=0 user_agent=curl/8.22.0
+2026-10-12T00:16:13.727677Z  INFO site::core::log_conf: http request method=GET uri=/api/c4/ws/4174955f?token=5cf80ecb0ee041eba81c23779f88e46e status=101 Switching Protocols latency_ms=0 user_agent=-
+2026-10-12T02:37:36.811861Z  INFO site::core::log_conf: http request method=GET status=200 OK latency_ms=0 uri=/ user_agent=Mozilla/5.0 (X11; Linux x86_64; rv:157.0) Gecko/20100101 Firefox/157.0
+2026-10-12T02:37:39.060137Z  INFO site::core::log_conf: http request method=GET status=200 OK latency_ms=0 uri=/ user_agent=Mozilla/5.0 (X11; Linux x86_64; rv:157.0) Gecko/20100101 Firefox/157.0
+2026-10-12T02:37:39.999898Z  INFO site::core::log_conf: http request method=GET status=200 OK latency_ms=0 uri=/ user_agent=Mozilla/5.0 (X11; Linux x86_64; rv:157.0) Gecko/20100101 Firefox/157.0
+2026-10-12T02:37:40.399898Z  INFO site::core::log_conf: http request method=GET status=200 OK latency_ms=0 uri=/ user_agent=Mozilla/5.0 (X11; Linux x86_64; rv:157.0) Gecko/20100101 Firefox/157.0
+2026-10-12T02:37:40.671317Z  INFO site::core::log_conf: http request method=GET status=200 OK latency_ms=0 uri=/ user_agent=Mozilla/5.0 (X11; Linux x86_64; rv:157.0) Gecko/20100101 Firefox/157.0
+2026-10-12T02:37:46.159424Z  INFO site::core::log_conf: http request method=GET status=200 OK latency_ms=2226 uri=/api/github user_agent=Mozilla/5.0 (X11; Linux x86_64; rv:157.0) Gecko/20100101 Firefox/157.0
+2026-10-12T02:38:05.171272Z  INFO site::core::log_conf: http request method=GET status=200 OK latency_ms=662 uri=/api/github user_agent=Mozilla/5.0 (X11; Linux x86_64; rv:157.0) Gecko/20100101 Firefox/157.0
+2026-10-12T02:38:19.636340Z  INFO site::core::log_conf: http request method=GET status=404 Not Found latency_ms=0 uri=/api/cmd user_agent=Mozilla/5.0 (X11; Linux x86_64; rv:157.0) Gecko/20100101 Firefox/157.0
+2026-10-12T02:43:28.829171Z  INFO site::core::log_conf: http request method=GET status=200 OK latency_ms=0 uri=/ user_agent=Mozilla/5.0 (X11; Linux x86_64; rv:157.0) Gecko/20100101 Firefox/157.0
+2026-10-12T02:43:32.229736Z  INFO site::core::log_conf: http request method=GET status=404 Not Found latency_ms=0 uri=/api/cmd user_agent=Mozilla/5.0 (X11; Linux x86_64; rv:157.0) Gecko/20100101 Firefox/157.0
+2026-10-12T02:43:43.061142Z  INFO site::core::log_conf: http request method=GET status=404 Not Found latency_ms=0 uri=/api/cmd user_agent=Mozilla/5.0 (X11; Linux x86_64; rv:157.0) Gecko/20100101 Firefox/157.0
+2026-10-12T02:44:00.381573Z  INFO site::core::log_conf: http request method=GET status=404 Not Found latency_ms=0 uri=/api/cmd user_agent=Mozilla/5.0 (X11; Linux x86_64; rv:157.0) Gecko/20100101 Firefox/157.0
+2026-10-12T02:48:42.669979Z  INFO site::core::log_conf: http request method=GET status=404 Not Found latency_ms=0 uri=/api/cmd user_agent=Mozilla/5.0 (X11; Linux x86_64; rv:157.0) Gecko/20100101 Firefox/157.0
+2026-10-12T02:52:50.134702Z  INFO site::core::log_conf: http request method=GET status=404 Not Found latency_ms=0 uri=/api/cmd user_agent=Mozilla/5.0 (X11; Linux x86_64; rv:157.0) Gecko/20100101 Firefox/157.0
+2026-10-12T02:52:57.579787Z  INFO site::core::log_conf: http request method=GET status=200 OK latency_ms=0 uri=/ user_agent=Mozilla/5.0 (X11; Linux x86_64; rv:157.0) Gecko/20100101 Firefox/157.0
+2026-10-12T02:53:00.558083Z  INFO site::core::log_conf: http request method=GET status=200 OK latency_ms=0 uri=/api/help user_agent=Mozilla/5.0 (X11; Linux x86_64; rv:157.0) Gecko/20100101 Firefox/157.0
+2026-10-12T02:53:18.028901Z  INFO site::core::log_conf: http request method=GET status=200 OK latency_ms=1965 uri=/api/github user_agent=Mozilla/5.0 (X11; Linux x86_64; rv:157.0) Gecko/20100101 Firefox/157.0
+2026-10-12T02:55:26.723943Z  INFO site::core::log_conf: http request method=GET status=200 OK latency_ms=0 uri=/ user_agent=Mozilla/5.0 (X11; Linux x86_64; rv:157.0) Gecko/20100101 Firefox/157.0
+2026-10-12T02:55:32.863175Z  INFO site::core::log_conf: http request method=GET status=200 OK latency_ms=2088 uri=/api/github user_agent=Mozilla/5.0 (X11; Linux x86_64; rv:157.0) Gecko/20100101 Firefox/157.0
+2026-10-12T02:58:22.682232Z  INFO site::core::log_conf: http request method=POST status=200 OK latency_ms=5074 uri=/api/send-email user_agent=Mozilla/5.0 (X11; Linux x86_64; rv:157.0) Gecko/20100101 Firefox/157.0

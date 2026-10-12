@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html lang="pt-PT">
 <head>
     <meta charset="UTF-8">
@@ -399,9 +399,9 @@
                 const endpoint = value === 'github' ? '/api/github' : '/api/cmd';
 
                 const response = await fetch(endpoint, {
-                    method: 'POST',
+                    method: 'GET',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ cmd: value })
+                    // body: JSON.stringify({ cmd: value })
                 });
 
                 if (response.status === 429) {
@@ -426,5 +426,74 @@
             }
         });
     </script>
+</body>
+</html> -->
+
+
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <link rel="stylesheet" href="/assets/style.css">
+    <link rel="icon" type="image/png" href="/assets/favicon.svg">
+</head>
+<body onclick="document.getElementById('cmd-input').focus()">
+
+    <div id="terminal">
+        <div id="output">
+            <div class="cmd-output">Portfolio OS v1.0.0 (tty1)</div>
+            <div class="cmd-output">Escreve 'help' para veres os comandos disponíveis.</div>
+            <br>
+        </div>
+        
+        <div class="input-line" id="input-container">
+            <span class="prompt" id="prompt-label">pablech@portfolio:~\$</span>
+            <span id="typed-text"></span>
+            <span id="cursor-block"></span>
+            <input type="text" id="cmd-input" autocomplete="off" autofocus spellcheck="false" style="position:absolute; opacity:0; width:1px;">
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="overlay" onclick="closeAllModals()"></div>
+
+    <div id="modal-detalhes">
+        <div class="modal-header header-drag" id="header-detalhes">
+            <span id="detalhes-title">INFO DO REPOSITÓRIO</span>
+            <div class="win-controls">
+                <span class="win-btn" onclick="toggleMinimize('modal-detalhes', 'detalhes-body')">[-]</span>
+                <span class="win-btn" onclick="toggleMaximize('modal-detalhes')">[+]</span>
+                <span class="win-btn close-btn" onclick="closeAllModals()">[X]</span>
+            </div>
+        </div>
+        <div id="detalhes-body"></div>
+    </div>
+
+    <div id="modal-vscode">
+        <div class="vscode-header header-drag" id="header-vscode">
+            <div class="vscode-tabs">
+                <div class="vscode-tab" id="vscode-filename">ficheiro.rs</div>
+            </div>
+            <div class="win-controls">
+                <span class="win-btn" onclick="toggleMinimize('modal-vscode', 'vscode-code')">[-]</span>
+                <span class="win-btn" onclick="toggleMaximize('modal-vscode')">[+]</span>
+                <span class="win-btn close-btn" onclick="closeVSCode()">✖</span>
+            </div>
+        </div>
+        <div class="vscode-body" id="vscode-code">
+            // A carregar ficheiro...
+        </div>
+    </div>
+
+    <div id="modal-status" class="modal" style="display:none; border: 1px solid #7aa2f7; background: #1a1b26; padding: 20px; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 1000; min-width: 320px; max-width: 500px; box-shadow: 0 0 15px rgba(0,0,0,0.8);">
+        <div id="status-title" style="font-weight:bold; margin-bottom:12px; font-size: 1.1em;"></div>
+        <div id="status-body" style="margin-bottom:20px; line-height: 1.4; word-break: break-word;"></div>
+        <div style="text-align:right;">
+            <span class="btn-tty" onclick="closeStatusModal()" style="cursor:pointer; padding: 4px 8px; border: 1px solid; color:#7aa2f7;">[ FECHAR ]</span>
+        </div>
+    </div>
+
+    <script type="module" src="/assets/js/main.js"></script>
 </body>
 </html>

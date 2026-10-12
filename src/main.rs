@@ -39,8 +39,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let shared_gh = Arc::new(gh);
     let shared_env = Arc::new(env);
 
-    let app = app::create_router(shared_gh, shared_env);
-    let addr  = "0.0.0.0:3000";
+    let app = app::create_router(shared_gh, shared_env, );
+    let addr  = "localhost:3000";
     tracing::debug!("Listening on: {}", addr);
     let listener = TcpListener::bind(addr).await?;
 

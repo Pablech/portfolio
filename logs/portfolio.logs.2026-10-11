@@ -1,0 +1,7 @@
+2026-10-11T23:48:50.886883Z  INFO site::core::log_conf: http request method=GET uri=/ status=200 OK latency_ms=0 user_agent=Mozilla/5.0 (X11; Linux x86_64; rv:157.0) Gecko/20100101 Firefox/157.0
+2026-10-11T23:54:03.896607Z  INFO site::core::log_conf: http request method=GET uri=/ status=200 OK latency_ms=0 user_agent=Mozilla/5.0 (X11; Linux x86_64; rv:157.0) Gecko/20100101 Firefox/157.0
+2026-10-11T23:54:37.423224Z  INFO site::core::log_conf: http request method=GET uri=/api/c4/room status=405 Method Not Allowed latency_ms=0 user_agent=Mozilla/5.0 (X11; Linux x86_64; rv:157.0) Gecko/20100101 Firefox/157.0
+2026-10-11T23:55:38.793143Z  INFO site::core::log_conf: http request method=POST uri=/api/c4/room status=200 OK latency_ms=0 user_agent=curl/8.22.0
+2026-10-11T23:55:58.079148Z  INFO site::core::log_conf: http request method=POST uri=/api/c4/room/cpu status=200 OK latency_ms=0 user_agent=curl/8.22.0
+2026-10-11T23:56:42.047036Z  INFO site::core::log_conf: http request method=POST uri=/api/c4/room/9cd46bbd/join status=409 Conflict latency_ms=0 user_agent=curl/8.22.0
+2026-10-11T23:58:03.555401Z  INFO site::core::log_conf: http request method=GET uri=/api/c4/ws/9cd46bbd?token=309b09e71ac34f2ca84aceb39de35d04 status=101 Switching Protocols latency_ms=0 user_agent=-
