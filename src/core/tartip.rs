@@ -19,9 +19,7 @@ pub async fn tarpit_scanners(State(tarpit): State<Arc<TarpitState>>,
         || path.contains("phpinfo")
         || path.contains("wp-")
         || path.contains(".env")
-        || path.contains(".git")
-        || path.contains("admin")
-        || path.contains(".ico");
+        || path.contains(".git");
 
     if is_probe {
         let ip = req.headers()
