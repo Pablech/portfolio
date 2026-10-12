@@ -5,7 +5,7 @@ use crate::handlers::models::BasicRes;
 // route = "/api/about"
 pub async fn about_handler() -> ([(header::HeaderName, &'static str); 1], Json<BasicRes>) {
     let about = "Sobre mim:\n  \
-        Sou estudante universitário e desenvolvedor full-stack apaixonado por\n  \
+        Sou estudante universitário e desenvolvedor em desenvolvimento, apaixonado por\n  \
         sistemas, automação e código de baixo nível e com vontade de aprender.\n\n  \
         Principais interesses:\n  \
         Rust          - Backends performáticos, CLIs e sistemas confiáveis\n  \
