@@ -5,4 +5,8 @@ pub mod hand_email;
 pub mod hand_home;
 pub mod hand_debug;
 pub mod hand_about_me;
+pub mod hand_sec_txt;
+pub mod hand_robots_txt;
+pub mod hand_llms_txt;
+pub mod hand_fav_ico;
 // pub mod c4_hand;

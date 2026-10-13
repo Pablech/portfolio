@@ -19,6 +19,10 @@ use crate::handlers::{
     hand_email::send_email_handler,
     hand_home::home_handler,
     hand_about_me::about_handler,
+    hand_sec_txt::security_txt_handler,
+    hand_robots_txt::robots_txt_handler,
+    hand_llms_txt::llms_txt_handler,
+    hand_fav_ico::favicon_ico_handler,
     // hand_debug::debug_headers,
 };
 use crate::core::{
@@ -71,6 +75,14 @@ pub fn create_router(gh: Arc<GitHub>, env: Arc<EnvSetting>, ) -> Router {
         .route("/api/help", get(help_handler))
 
         .route("/api/about", get(about_handler))
+
+        .route("/.well-known/security.txt", get(security_txt_handler))
+
+        .route("/robots.txt", get(robots_txt_handler))
+
+        .route("/llms.txt", get(llms_txt_handler))
+
+        .route("/favicon.ico", get(favicon_ico_handler))
 
         // .route("/debug/headers", get(debug_headers))
         .route("/api/send-email", post(send_email_handler)

@@ -11,6 +11,7 @@ use rand::Rng;
 use crate::core::{
     ddos_protect::TarpitState,
     get_ip::get_ip,
+    get_user_agent::get_ua,
 };
 
 pub async fn tarpit_scanners(State(tarpit): State<Arc<TarpitState>>,
@@ -26,21 +27,11 @@ pub async fn tarpit_scanners(State(tarpit): State<Arc<TarpitState>>,
 
     if is_probe {
         let ip = get_ip(&req);
-
-        if tarpit.is_blocked(&ip) {
-            tracing::warn!("TARPIT: {} já visitou recentemente, {}", ip,
-                StatusCode::SERVICE_UNAVAILABLE,
-            );
-            return StatusCode::SERVICE_UNAVAILABLE.into_response();
-        }
+        let ua = get_ua(&req);
         
         if ip != "unknown" {
             if tarpit.is_blocked(&ip) {
-                tracing::warn!(
-                    "TARPIT: {} já visitou recentemente, {}",
-                    ip,
-                    StatusCode::SERVICE_UNAVAILABLE
-                );
+                tracing::warn!("TARPIT: Scanner {} - path: {} - user-agent: {}", ip, path, ua,);
                 return StatusCode::SERVICE_UNAVAILABLE.into_response();
             }
 
@@ -49,8 +40,8 @@ pub async fn tarpit_scanners(State(tarpit): State<Arc<TarpitState>>,
 
         let delay_seconds = rand::thread_rng().gen_range(50..=120);
         tracing::warn!(
-            "TARPIT: Scanner {} capturado em {} - delay de {}s",
-            ip, path, delay_seconds
+            "TARPIT: Scanner {} - delay: {} - path: {} - user-agent: {}",
+            ip, delay_seconds, path, ua,
         );
 
         sleep(Duration::from_secs(delay_seconds)).await;

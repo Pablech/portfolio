@@ -7,16 +7,18 @@ use axum::{
 use tracing::{warn, info};
 
 use crate::core::get_ip::get_ip;
+use crate::core::get_user_agent::get_ua;
 
 pub async fn log_rate_limit(req: Request, next: Next) -> Response {
 
     let ip = get_ip(&req);
     let path = req.uri().path().to_string();
+    let ua = get_ua(&req);
 
     let response = next.run(req).await;
 
     if response.status() == StatusCode::TOO_MANY_REQUESTS {
-        warn!("rate limit: IP {} on {}", ip, path);
+        warn!("rate limit: IP {} on {} - user-agent: {}", ip, path, ua);
     }
     response
 }
@@ -24,16 +26,7 @@ pub async fn log_rate_limit(req: Request, next: Next) -> Response {
 pub async fn request_logger(req: Request, next: Next) -> Response {
     let method = req.method().clone();
     let uri = req.uri().clone();
-
-    // let ip = get_ip(&req);
-    
-    // let ua: String = req.headers()
-    //     .get("user-agent")
-    //     .and_then(|v| v.to_str().ok())
-    //     .unwrap_or("-")
-    //     .chars()
-    //     .take(120)
-    //     .collect();
+    let ua = get_ua(&req);
 
     let start = std::time::Instant::now();
     let response = next.run(req).await;
@@ -44,9 +37,8 @@ pub async fn request_logger(req: Request, next: Next) -> Response {
         method = %method,
         status = %status,
         latency_ms = latency.as_millis() as u64,
-        // ip = &ip,
         uri = %uri,
-        // user_agent = %ua,
+        ua = &ua,
         "http"
     );
 
