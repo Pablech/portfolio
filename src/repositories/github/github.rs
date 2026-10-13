@@ -3,35 +3,40 @@ use reqwest::{Method, header::{HeaderMap, AUTHORIZATION, USER_AGENT, ACCEPT}};
 use serde_json::from_value;
 use base64::{Engine as _, engine::general_purpose};
 use tracing::warn;
+use std::{sync::RwLock, time::Instant};
 
 use crate::repositories::httpc::httpc::HttpC;
 use crate::core::env_settings::EnvSetting;
 use crate::repositories::github::models::{
-    Repo, RepoContent, RepoFile, RepoInfo};
-
+    Repo, RepoContent, RepoFile, RepoInfo
+};
 
 pub struct GitHub {
     env: EnvSetting,
     httpc: HttpC,
-    acept: String,
+    accept: String,
     auth_value: String,
     user_agent: String,
+    cache: RwLock<Option<(String, Instant)>>,
 }
+
+const CACHE_TTL_SECS: u64 = 3600;
 
 impl GitHub {
     pub fn new(env: &EnvSetting, httpc: &HttpC) -> Self {
-        Self { 
+        Self {
             env: env.clone(),
             httpc: httpc.clone(),
-            acept: "application/vnd.github+json".parse().unwrap(), 
-            auth_value: format!("Bearer {}", &env.git_token), 
+            accept: "application/vnd.github+json".parse().unwrap(),
+            auth_value: format!("Bearer {}", &env.git_token),
             user_agent: env.user_agent.clone(),
+            cache: RwLock::new(None),
         }
     }
 
     pub async fn fetch_repos(&self, include_private: bool) 
             -> Result<Vec<Repo>, Box<dyn std::error::Error + Send + Sync + 'static>> {
-                
+        
         let url: String = format!("{}/user/repos", &self.env.url);
         
         let mut header = HeaderMap::new();
@@ -64,7 +69,7 @@ impl GitHub {
 
         let mut header = HeaderMap::new();
         header.insert(USER_AGENT, HeaderValue::from_str(&self.user_agent)?);
-        header.insert(ACCEPT, HeaderValue::from_str(&self.acept)?);
+        header.insert(ACCEPT, HeaderValue::from_str(&self.accept)?);  // ✅ corrigido
         header.insert(AUTHORIZATION, HeaderValue::from_str(&self.auth_value)?);
 
         let response = &self.httpc.request(
@@ -92,7 +97,7 @@ impl GitHub {
 
         let mut header = HeaderMap::new();
         header.insert(USER_AGENT, HeaderValue::from_str(&self.user_agent)?);
-        header.insert(ACCEPT, HeaderValue::from_str(&self.acept)?);
+        header.insert(ACCEPT, HeaderValue::from_str(&self.accept)?);  // ✅ corrigido
         header.insert(AUTHORIZATION, HeaderValue::from_str(&self.auth_value)?);
 
         let response = &self.httpc.request(
@@ -102,11 +107,22 @@ impl GitHub {
             None,
             None,
         ).await?;
+        
         let contents: Vec<RepoContent> = from_value(response.clone())?;
         Ok(contents)
     }
 
     pub async fn get_github_json(&self) -> String {
+        
+        {
+            let cache = self.cache.read().unwrap();
+            if let Some((json, ts)) = cache.as_ref() {
+                if ts.elapsed().as_secs() < CACHE_TTL_SECS {
+                    return json.clone();
+                }
+            }
+        }
+
         let repos = match self.fetch_repos(false).await {
             Ok(r) => r,
             Err(e) => {
@@ -156,6 +172,10 @@ impl GitHub {
             });
         }
 
-        serde_json::to_string(&frontend_repos).unwrap_or_else(|_| "[]".to_string())
+        let json_result = serde_json::to_string(&frontend_repos).unwrap_or_else(|_| "[]".to_string());
+        
+        *self.cache.write().unwrap() = Some((json_result.clone(), Instant::now()));
+
+        json_result
     }
 }
