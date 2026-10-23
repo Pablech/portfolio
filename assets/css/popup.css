@@ -1,0 +1,41 @@
+#modal-status {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1000;
+    border: 1px solid var(--tty-color);
+    background: var(--bg-color);
+    padding: 20px;
+    min-width: 320px;
+    max-width: 500px;
+    box-shadow: 0 0 15px rgba(0, 255, 0, 0.2);
+}
+
+#status-title {
+    font-weight: bold;
+    margin-bottom: 12px;
+    font-size: 1.1em;
+}
+
+#status-body {
+    margin-bottom: 20px;
+    line-height: 1.4;
+    word-break: break-word;
+}
+
+.modal-footer {
+    text-align: right;
+}
+
+#modal-close-btn {
+    cursor: pointer;
+    padding: 4px 8px;
+    border: 1px solid;
+    display: inline-block;
+    font-weight: bold;
+    color: var(--bg-color);
+    background-color: var(--tty-color);
+}
+#modal-close-btn:hover { background-color: var(--bg-color); color: var(--tty-color); }

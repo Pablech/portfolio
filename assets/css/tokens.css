@@ -1,0 +1,30 @@
+:root {
+    --bg-color: #050505;
+    --tty-color: #ffffff;
+    --panel-bg: #121212;
+}
+
+body.theme-matrix {
+    --bg-color: #050505;
+    --tty-color: #00ff00;
+    --panel-bg: #0a0a0a;
+}
+
+body.theme-white {
+    --bg-color: #ffffff;
+    --tty-color: #000000;
+    --panel-bg: #f8f9fa;
+}
+
+body.theme-tty {
+    --bg-color: #050505;
+    --tty-color: #ffffff;
+    --panel-bg: #121212;
+    text-shadow: 0 0 5px rgba(0, 255, 0, 0.3);
+}
+
+body.theme-pink {
+    --bg-color: #fcc0f3;
+    --tty-color: #000000;
+    --panel-bg: #fcc0f3;
+}

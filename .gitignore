@@ -1,0 +1,7 @@
+/target
+.env
+/templates/old.html
+/assets/old.css
+/templates/docs/
+/reserva
+/logs

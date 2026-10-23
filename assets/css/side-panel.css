@@ -1,0 +1,70 @@
+#side-panel {
+    flex: 1;
+    height: 100%;
+    background: var(--bg-color);
+    color: var(--tty-color);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-sizing: border-box;
+    min-width: 0;
+    border: 0px dashed var(--tty-color);
+}
+
+.side-panel .content {
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    overflow-x: auto;
+    max-width: 100%;
+    min-width: 0;
+}
+
+.side-header {
+    background: var(--panel-bg);
+    padding: 15px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px dashed var(--tty-color);
+    user-select: none;
+}
+
+.side-tabs {
+    display: flex;
+    gap: 15px;
+    font-size: 15px;
+    align-items: center;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.side-body {
+    flex: 1;
+    overflow: auto;
+    padding: 15px;
+    font-size: 15px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    line-height: 1.4;
+    min-width: 0;
+}
+
+.side-body pre, .side-body code {
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-width: 100%;
+}
+
+.side-panel pre.vsc {
+    white-space: pre;
+    overflow-x: auto;
+    max-width: 100%;
+}
+
+#side-close-btn {
+    margin-right: 10px;
+    padding: 0 6px;
+    flex-shrink: 0;
+}

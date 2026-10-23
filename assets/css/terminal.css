@@ -1,0 +1,103 @@
+.terminal {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    height: 100%;
+    background-color: var(--bg-color);
+    color: var(--tty-color);
+    box-sizing: border-box;
+    padding: 20px;
+    min-width: 0;
+    min-height: 0;
+    overflow-y: auto;
+    border: 0px dashed var(--tty-color);
+}
+
+.terminal .output {
+    flex: none;
+    overflow: visible;
+}
+
+.cmd-output {
+    margin-bottom: 0px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    line-height: 1.4;
+}
+
+.input-line {
+    position: relative;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    line-height: 1.4;
+    margin: 0;
+}
+
+.prompt {
+    margin-right: 8px;
+}
+
+.terminal .cmd-input {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100px;
+    height: 100px;
+    opacity: 0;
+    border: none;
+    background: transparent;
+    outline: none;
+}
+
+.cmd-input {
+    background: transparent;
+    border: none;
+    color: var(--tty-color);
+    font-family: inherit;
+    font-size: inherit;
+    outline: none;
+    flex-grow: 1;
+    caret-color: transparent;
+}
+
+.cursor-block {
+    display: inline-block;
+    min-width: 1ch;
+    height: 1.3em;
+    background-color: var(--tty-color);
+    color: var(--bg-color);
+    animation: blink 1s step-end infinite;
+    vertical-align: text-bottom;
+}
+
+.terminal:not(.focused) .cursor-block {
+    display: none;
+}
+
+@keyframes blink {
+    50% {
+        background-color: transparent;
+        color: var(--tty-color);
+    }
+}
+
+.btn-tty {
+    color: var(--bg-color);
+    background-color: var(--tty-color);
+    cursor: pointer;
+    padding: 2px 6px;
+    text-decoration: none;
+    font-weight: bold;
+    border: 1px solid var(--tty-color);
+}
+.btn-tty:hover { background-color: var(--bg-color); color: var(--tty-color); }
+
+.file-link { cursor: pointer; text-decoration: underline; color: var(--tty-color); }
+.file-link:hover { background-color: var(--tty-color); color: var(--bg-color); }
+
+.header-drag { cursor: move; }
+.win-controls { display: flex; gap: 12px; align-items: center; }
+.close-btn { cursor: pointer; color: var(--tty-color); font-weight: bold; }
+.close-btn:hover { background-color: var(--tty-color); color: var(--bg-color); }
