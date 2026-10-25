@@ -7,16 +7,31 @@ import { escapeHtml } from "./utils.js";
 function renderTypedLine(shell) {
     const { input, typed } = shell;
     const value = input.value;
-    const pos = input.selectionStart ?? value.length;
+    const start = input.selectionStart ?? value.length;
+    const end = input.selectionEnd ?? value.length;
 
-    const before = escapeHtml(value.slice(0, pos));
-    const at = escapeHtml(value.slice(pos, pos + 1));
-    const after = escapeHtml(value.slice(pos + 1));
+    if (start !== end) {
+        const min = Math.min(start, end);
+        const max = Math.max(start, end);
 
-    typed.innerHTML =
-        before +
-        `<span class="cursor-block">${at || '&nbsp;'}</span>` +
-        after;
+        const before = escapeHtml(value.slice(0, min));
+        const selected = escapeHtml(value.slice(min, max));
+        const after = escapeHtml(value.slice(max));
+
+        typed.innerHTML =
+            before +
+            `<span class="cursor-selected">${selected}</span>` +
+            after;
+    } else {
+        const before = escapeHtml(value.slice(0, start));
+        const at = escapeHtml(value.slice(start, start + 1));
+        const after = escapeHtml(value.slice(start + 1));
+
+        typed.innerHTML =
+            before +
+            `<span class="cursor-block">${at || '&nbsp;'}</span>` +
+            after;
+    }
 }
 
 export function attachShellEvents(shell, { setActive }) {
@@ -24,7 +39,7 @@ export function attachShellEvents(shell, { setActive }) {
 
     shell.input.addEventListener('input', render);
     shell.input.addEventListener('keyup', render);
-    shell.input.addEventListener('cleck', render);
+    shell.input.addEventListener('click', render);
     shell.input.addEventListener('select', render);
 
     shell.root.addEventListener('click', () => {
