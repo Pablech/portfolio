@@ -30,20 +30,23 @@
     position: relative;
     flex-shrink: 0;
     display: flex;
-    align-items: center;
+    flex-wrap: nowrap;
+    align-items: flex-start;
     line-height: 1.4;
     margin: 0;
 }
 
 .prompt {
+    flex-shrink: 0;
     margin-right: 8px;
+    white-space: nowrap;
 }
 
 .terminal .cmd-input {
     position: absolute;
     top: 0;
     left: 0;
-    width: 100px;
+    width: 100%;
     height: 100px;
     opacity: 0;
     border: none;
@@ -60,6 +63,11 @@
     outline: none;
     flex-grow: 1;
     caret-color: transparent;
+}
+
+.cursor-selected {
+    background-color: var(--tty-color);
+    color: var(--bg-color);
 }
 
 .cursor-block {
