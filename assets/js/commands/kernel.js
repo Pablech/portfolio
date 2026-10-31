@@ -38,9 +38,18 @@ registry['help']  = (_value, shell) => fetchAndPrint(shell, fetchHelp);
 registry['about'] = (_value, shell) => fetchAndPrint(shell, fetchAbout);
 registry['keys']  = (_value, shell) => fetchAndPrint(shell, fetchKeys);
 
+registry['resume'] = (_value, shell) => {
+    shell.print("A abrir o currículo... [PDF]");
+    const a = document.createElement('a');
+    a.href = '/api/resume';
+    a.target = '_blank';
+    a.rel = 'noopener';
+    a.click();
+};
+
 registry['github'] = async (_value, shell) => {
     const s = shell.state;
-    shell.print("<br>A ligar à API do GitHub... [AGUARDE]");
+    shell.print("A ligar à API do GitHub... [AGUARDE]");
     shell.input.disabled = true;
     shell.setPrompt("A CARREGAR...");
 

@@ -20,6 +20,7 @@ use crate::handlers::{
     hand_home::home_handler,
     hand_about::about_handler,
     hand_keys::keys_handler,
+    hand_resume::resume_pdf_handler,
     bots_handlers::{
         hand_sec_txt::security_txt_handler,
         hand_robots_txt::robots_txt_handler,
@@ -76,6 +77,7 @@ pub fn create_router(gh: Arc<GitHub>, env: Arc<EnvSetting>, ) -> Router {
         .route("/help", get(help_handler))
         .route("/about", get(about_handler))
         .route("/keys", get(keys_handler))
+        .route("/resume", get(resume_pdf_handler))
         .route("/send-email", post(send_email_handler).layer(GovernorLayer { config: email_conf }))
         .route("/github", get(github_handler).layer(GovernorLayer { config: gh_conf }));
 
