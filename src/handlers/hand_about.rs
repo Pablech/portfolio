@@ -1,37 +1,59 @@
 use axum::{http::header, Json};
+use include_dir::{include_dir, Dir};
+use std::sync::LazyLock;
 
-use crate::handlers::models::BasicRes;
+use crate::handlers::{
+    models::{BasicRes, SectionContent, Project},
+    formatters::format_section,
+};
+
+const ABOUT: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/static/about.txt"));
+const PHILOSOPHY: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/static/philosophy.txt"));
+const CONTACT: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/static/contact.txt"));
+
+static PROJECTS_DIR: Dir = include_dir!("static/projects");
+
+static DYNAMIC_PROJECTS: LazyLock<Vec<Project>> = LazyLock::new(|| {
+    let mut projects = Vec::new();
+    
+    for entry in PROJECTS_DIR.dirs() {
+        let folder_name = entry.path()
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("projeto");
+        
+        let name  = read_field(&entry, "name.txt").unwrap_or(folder_name);
+        let stack = read_field(&entry, "stack.txt").unwrap_or("");
+        let desc  = read_field(&entry, "desc.txt").unwrap_or("");
+        
+        projects.push(Project { name, stack, desc });
+    }
+
+    projects
+});
+
+static ABOUT_OUTPUT: LazyLock<String> = LazyLock::new(|| {
+    let projects_body = format_section(&*DYNAMIC_PROJECTS);
+
+    let sections = &[
+        SectionContent { title: "Sobre mim", content: ABOUT },
+        SectionContent { title: "Projetos", content: &projects_body },
+        SectionContent { title: "Filosofia", content: PHILOSOPHY },
+        SectionContent { title: "Contato", content: CONTACT },
+    ];
+
+    format_section(sections)
+});
+
+fn read_field(entry: &Dir<'static>, file_name: &str) -> Option<&'static str> {
+    entry.files()
+        .find(|f| f.path().file_name().and_then(|n| n.to_str()) == Some(file_name))
+        .and_then(|f| f.contents_utf8())
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+}
 
 // route = "/api/about"
 pub async fn about_handler() -> ([(header::HeaderName, &'static str); 1], Json<BasicRes>) {
-    let about = "Sobre mim:\n  \
-        Sou estudante universitário e desenvolvedor em desenvolvimento, apaixonado por\n  \
-        sistemas, automação e código de baixo nível e com vontade de aprender.\n\n  \
-        Principais interesses:\n  \
-        Rust          - Backends performáticos, CLIs e sistemas confiáveis\n  \
-        Python        - Machine Learning e automação\n  \
-        Linux (Arch)  - Diário, com tudo customizado na mão\n  \
-        IA/RL         - Agentes inteligentes aplicados a problemas reais\n\n  \
-        Projeto principal - BRISE (Residência TIC 55 Brisa-Unisinos):\n  \
-        Sistema de automação inteligente de ar-condicionados splits com\n  \
-        Inteligência Artificial. Treino agentes de reinforcement learning\n  \
-        (PPO) em simulação com Sinergym/EnergyPlus, que decidem setpoint e\n  \
-        modo de operação priorizando: conforto térmico > consumo de energia\n  \
-        > umidade e qualidade do ar.\n  \
-        Stack: Python, TensorFlow/Keras, Gymnasium, PostgreSQL, Docker e\n  \
-        Apache Arrow Flight para ingestão de dados de sensores reais.\n\n  \
-        Este portfólio:\n  \
-        Desenvolvido do zero em Rust com Axum — do servidor à interface\n  \
-        que estás a ver. Terminal retrô, temas alternáveis e zero\n  \
-        frameworks de frontend. Só código.\n  \
-        Ainda em desenvolvimento...\n\n  \
-        Filosofia:\n  \
-        Acredito que boa engenharia é fazer mais com menos — código enxuto\n  \
-        e sistemas compreensíveis. Democratizar tecnologia é escrever\n  \
-        software com performance e baixo custo computacional: se um\n  \
-        programa roda bem em qualquer máquina, ele serve a qualquer\n  \
-        pessoa, não só a quem tem hardware caro.\n\n  \
-        Contato: digita 'email' para me enviares uma mensagem.";
-
-    ([(header::CACHE_CONTROL, "no-store")], Json(BasicRes { output: about.to_string() }))
+    ([(header::CACHE_CONTROL, "no-store")], Json(BasicRes { output: ABOUT_OUTPUT.clone() }))
 }
