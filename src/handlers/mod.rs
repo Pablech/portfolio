@@ -6,3 +6,4 @@ pub mod hand_home;
 pub mod hand_about;
 pub mod bots_handlers;
 pub mod hand_keys;
+pub mod formatters;

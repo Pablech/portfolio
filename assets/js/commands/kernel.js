@@ -11,7 +11,7 @@ export function setOnNew(fn) { onNew = fn; }
 export function setOnExit(fn) { onExit = fn; }
 
 async function fetchAndPrint(shell, fn) {
-    shell.print("<br>Carregando... [AGUARDE]");
+    shell.setPrompt("Carregando... [AGUARDE]");
     shell.input.disabled = true;
     shell.setPrompt("A CARREGAR...");
 
