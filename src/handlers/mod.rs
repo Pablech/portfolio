@@ -7,3 +7,4 @@ pub mod hand_about;
 pub mod bots_handlers;
 pub mod hand_keys;
 pub mod formatters;
+pub mod hand_resume;
