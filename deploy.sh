@@ -4,7 +4,7 @@ set -e
 if [ -f .env ]; then
   export $(grep -v '^#' .env | xargs)
 else
-  echo "❌ Erro: Ficheiro .env não encontrado!"
+  echo "Erro: Ficheiro .env não encontrado!"
   exit 1
 fi
 
