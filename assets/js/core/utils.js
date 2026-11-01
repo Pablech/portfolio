@@ -63,3 +63,12 @@ export function suggestCmd(name, cmds) {
 
     return candidates.length ? [candidates[0]] : null;
 }
+
+export function commonPrefix(strings) {
+    if (!strings.length) return '';
+    return strings.reduce((acc, s) => {
+        let i = 0;
+        while (i < acc.length && i < s.length && acc[i] === s[i]) i++;
+        return acc.slice(0, i);
+    })
+}
