@@ -6,8 +6,12 @@ function makeHeader(dir) {
     return `Portfolio ${dir} v1.0.0`;
 }
 
-export function cmdError(value) {
-    return `<span style='color:red;'>Comando desconhecido: '${value}'. Digita 'help'.</span>`;
+export function cmdError(value, suggestion = null) {
+    if (!suggestion) {
+        return `<span style='color:red;'>[!] Comando desconhecido: '${value}'. Digita 'help'.</span>`;
+    } else {
+        return `<span style='color:yellow;'>[?] Commando '${value}' não encontrado. Cmd mais similar: ${suggestion}.</span>`
+    }
 }
 
 export const DEFAULT_PROMPT = makePrompt('~');

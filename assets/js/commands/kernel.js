@@ -5,6 +5,7 @@ import { themeCommand } from "./theme.js";
 // import { GAME_PROMPT, DEFAULT_GAME_HEADER, DEFAULT_GAME_MSG, KIND_GAME } from "../ui/outputs.js";
 import { fetchAndPrint } from "../ui/fetchAndPrint.js";
 import { cmdError } from "../ui/outputs.js";
+import { suggestCmd } from "../core/utils.js";
 
 const registry = {};
 let onNew = null;
@@ -55,18 +56,27 @@ registry['github'] = async (_value, shell) => {
     shell.focus();
 };
 
+
 export async function routeCommand(value, shell) {
+    const allCommands = Object.keys(registry);
     const s = shell.state;
 
     if (s.isPaginating)   { handlePaginationInput(value, shell); return; }
     if (s.wizardStep !== null) { handleWizardInput(value, shell); return; }
 
+    
     shell.print(`<span class="prompt">${shell.prompt}</span>${value}`);
     if (!value) return;
-
-    const name = value.split(/\s+/)[0].toLowerCase();
+    
+    const name = value.split(/\s+/)[0];
     const handler = registry[name];
     if (handler) return handler(value, shell);
 
-    shell.print(cmdError(value));
+    let candidates = suggestCmd(name, allCommands);
+    if (candidates?.length) {
+        const suggestions = candidates.map(c => `\`${c.cmd}\``).join(', ');
+        shell.print(cmdError(value, suggestions));
+    } else {
+        shell.print(cmdError(value));
+    }
 }
