@@ -1,8 +1,8 @@
-import { routeCommand } from "../commands/kernel.js";
+import { getCommandNames, routeCommand } from "../commands/kernel.js";
 import { initMouse } from "./mouse.js";
 import { handleSidePanelClick } from "../commands/repoViews.js";
 import { closeStatusPopup } from "../ui/statusPopup.js";
-import { escapeHtml } from "./utils.js";
+import { commonPrefix, escapeHtml } from "./utils.js";
 
 function renderTypedLine(shell) {
     const { input, typed } = shell;
@@ -56,6 +56,33 @@ export function attachShellEvents(shell, { setActive }) {
             shell.clear();
             return;
         }
+
+        if (e.key === 'Tab') {
+            e.preventDefault();
+
+            const value = shell.input.value;
+            const [firstWord] = value.split(/\s+/);
+            if (!firstWord) return;
+
+            const names = getCommandNames().filter(c => c.startsWith(firstWord));
+            if (names.length === 1) {
+                const rest = value.slice(firstWord.length);
+                shell.input.value = names[0] + ' ' + rest.trimStart();
+                shell.input.setSelectionRange(shell.input.value.length, shell.input.value.length);
+                renderTypedLine(shell);
+            } else if (names.length > 1) {
+                const shared = commonPrefix(names);
+                if (shared.length > firstWord.length) {
+                    shell.input.value = shared + value.slice(firstWord.length);
+                    renderTypedLine(shell);
+                } else {
+                    shell.print(`<span class="prompt">${shell.prompt}</span>${value}`);
+                    shell.print(names.map(n => `\`${n}\``).join('   '));
+                }
+            }
+            return;
+        }
+
         if (e.key !== 'Enter') return;
 
         const value = shell.input.value.trim();

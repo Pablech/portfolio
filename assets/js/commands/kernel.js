@@ -13,6 +13,7 @@ let onExit = null;
 
 export function setOnNew(fn) { onNew = fn; }
 export function setOnExit(fn) { onExit = fn; }
+export function getCommandNames() { return Object.keys(registry); }
 
 registry['clear'] = (_value, shell) => shell.clear();
 registry['email'] = (_value, shell) => startWizard(shell);
