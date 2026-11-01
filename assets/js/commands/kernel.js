@@ -2,6 +2,9 @@ import { fetchAbout, fetchGitHub, fetchHelp, fetchKeys } from "../api/api.js";
 import { startWizard, handleWizardInput } from "./email.js";
 import { startGitHubPagination, handlePaginationInput } from "./github.js";
 import { themeCommand } from "./theme.js";
+// import { GAME_PROMPT, DEFAULT_GAME_HEADER, DEFAULT_GAME_MSG, KIND_GAME } from "../ui/outputs.js";
+import { fetchAndPrint } from "../ui/fetchAndPrint.js";
+import { cmdError } from "../ui/outputs.js";
 
 const registry = {};
 let onNew = null;
@@ -10,28 +13,14 @@ let onExit = null;
 export function setOnNew(fn) { onNew = fn; }
 export function setOnExit(fn) { onExit = fn; }
 
-async function fetchAndPrint(shell, fn) {
-    shell.setPrompt("Carregando... [AGUARDE]");
-    shell.input.disabled = true;
-    shell.setPrompt("A CARREGAR...");
-
-    try {
-        const { ok, status, data } = await fn();
-        if (!ok) {
-            shell.print(`<span style='color:red;'>[Erro] Servidor respondeu ${status}.</span>`);
-            return;
-        }
-        if (data?.output) shell.print(data.output);
-    } finally {
-        shell.input.disabled = false;
-        shell.setPrompt(shell.prompt);
-        shell.focus();
-    }
-}
-
 registry['clear'] = (_value, shell) => shell.clear();
 registry['email'] = (_value, shell) => startWizard(shell);
-registry['new']   = () => onNew?.();
+// registry['games'] = () => onNew?.({
+//     prompt: GAME_PROMPT,
+//     header: DEFAULT_GAME_HEADER,
+//     welcome: DEFAULT_GAME_MSG,
+//     kind: KIND_GAME,
+// });
 registry['theme'] = themeCommand;
 registry['exit'] = (_value, shell) => onExit?.(shell);
 registry['help']  = (_value, shell) => fetchAndPrint(shell, fetchHelp);
@@ -79,5 +68,5 @@ export async function routeCommand(value, shell) {
     const handler = registry[name];
     if (handler) return handler(value, shell);
 
-    shell.print(`<span style='color:red;'>Comando não encontrado: ${value}. Digita 'help' para ajuda.</span>`);
+    shell.print(cmdError(value));
 }

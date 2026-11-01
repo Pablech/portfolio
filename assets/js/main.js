@@ -1,6 +1,6 @@
 import { attachShellEvents, initGlobalEvents, initTerminalHotkeys } from "./core/events.js";
 import { getHtmlTerminal } from "./partials/terminal.js";
-import { DEFAULT_PROMPT, DEFAULT_OS_HEADER } from "./ui/outputs.js";
+import { DEFAULT_PROMPT, DEFAULT_OS_HEADER, DEFAULT_INIT_MSG, GAME_PROMPT, KIND_GAME, KIND_OS } from "./ui/outputs.js";
 import { makeColResizer } from "./core/resizers.js";
 import { setOnNew, setOnExit } from "./commands/kernel.js";
 import { restoreTheme } from "./commands/theme.js";
@@ -8,7 +8,6 @@ import { Shell } from "./core/shell.js";
 
 const desktop = document.getElementById('desktop');
 const shells = [];
-let ttyCounter = 0;
 let activeShell = null;
 
 export function getActiveShell() { return activeShell ?? shells[0]; }
@@ -17,6 +16,13 @@ function setActive(shell) {
     document.querySelectorAll('.terminal.focused')
     .forEach(t => t.classList.remove('focused'));
     shell?.root.classList.add('focused');
+}
+
+function nextTtyId() {
+    const used = new Set(shells.map(s => s.ttyId));
+    let id = 1;
+    while (used.has(id)) id++;
+    return id;
 }
 
 restoreTheme();
@@ -29,13 +35,12 @@ initTerminalHotkeys({
 });
 
 export function closeTerminal(shell) {
-    if (shells.length <= 1) {
-        shell.print("<span style='color:red;'>[!] Não podes fechar o último terminal.</span>");
+    if (shell.kind === KIND_OS) {
+        shell.print("<span style='color:red;'>[!] Não podes fechar este terminal.</span>");
         return;
     }
 
     const { host } = shell;
-
     const leftSep = host.previousElementSibling;
     const sep = leftSep?.classList.contains('terminal-separator')
         ? leftSep
@@ -56,22 +61,36 @@ export function closeTerminal(shell) {
     activeShell?.focus();
 }
 
-export function spawnTerminal() {
-    ttyCounter++;
+export function spawnTerminal(opts = {}) {
+    const {
+        prompt = DEFAULT_PROMPT,
+        header = DEFAULT_OS_HEADER,
+        welcome = DEFAULT_INIT_MSG,
+        kind = KIND_OS,
+        onSpawn,
+    } = opts;
 
-    const isFirst = shells.length === 0;
+    const existing = shells.find(s => s.kind === kind);
+    if (existing) {
+        existing.print(`<span style='color:red;'>[!] Já tens um terminal "${kind}" aberto.</span>`);
+        existing.focus();
+        setActive(existing);
+        return existing;
+    }
+
+    const ttyId = nextTtyId();
 
     const wrapper = document.createElement('div');
     wrapper.style.display = 'flex';
     wrapper.style.flex = '1';
     wrapper.style.minWidth = '0';
-    wrapper.innerHTML = getHtmlTerminal(DEFAULT_PROMPT);
+    wrapper.innerHTML = getHtmlTerminal(prompt);
 
     const host = document.createElement('div');
     host.className = 'terminal-host';
     host.appendChild(wrapper);
 
-    if (isFirst) {
+    if (kind === KIND_OS) {
         desktop.appendChild(host);
     } else {
         const sep = document.createElement('div');
@@ -91,16 +110,18 @@ export function spawnTerminal() {
         });
     }
 
-    const shell = new Shell(wrapper.querySelector('.terminal'), DEFAULT_PROMPT);
-    shell.ttyId = ttyCounter;
+    const shell = new Shell(wrapper.querySelector('.terminal'), prompt);
+    shell.ttyId = ttyId;
+    shell.kind = kind;
     shell.host = host;
     attachShellEvents(shell, { setActive });
     shells.push(shell);
 
-    shell.print(`${DEFAULT_OS_HEADER} (tty${ttyCounter})`);
-    shell.print("Escreve 'help' para veres os comandos disponíveis.");
+    shell.print(`${header} (tty${ttyId})`);
+    shell.print(welcome);
     shell.focus();
     setActive(shell);
+    onSpawn?.(shell);
     return shell;
 }
 
