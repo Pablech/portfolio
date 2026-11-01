@@ -6,6 +6,8 @@ export class Shell {
         this.typed = root.querySelector('.typed-text');
         this.output = root.querySelector('.output');
         this.promptLabel = root.querySelector('.prompt-label');
+        this.history = [];
+        this.historyIndex = null;
 
         this.state = {
             backendRepos: [],

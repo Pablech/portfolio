@@ -49,6 +49,35 @@ export function attachShellEvents(shell, { setActive }) {
     });
 
     shell.input.addEventListener('keydown', async (e) => {
+        const history = shell.history;
+        
+        if (e.key === 'ArrowUp') {
+            if (history.length > 0) {
+                e.preventDefault();
+                if (shell.historyIndex === null) {
+                    shell.historyIndex = history.length - 1;
+                } else if (shell.historyIndex > 0) {
+                    shell.historyIndex--;
+                }
+                shell.input.value = history[shell.historyIndex];
+                renderTypedLine(shell);
+                return;
+            }
+        } else if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            if (shell.historyIndex !== null) {
+                if (shell.historyIndex < shell.history.length - 1) {
+                    shell.historyIndex++;
+                    shell.input.value = history[shell.historyIndex];
+                } else {
+                    shell.historyIndex = null;
+                    shell.input.value = '';
+                }
+                renderTypedLine(shell);
+                return;
+            }
+        }
+
         if (window.getSelection().toString()) window.getSelection().removeAllRanges();
 
         if (e.ctrlKey && e.key.toLowerCase() === 'l') {
@@ -87,6 +116,12 @@ export function attachShellEvents(shell, { setActive }) {
 
         const value = shell.input.value.trim();
         shell.input.value = '';
+
+        if (value && value !== shell.history[shell.history.length - 1]) {
+            shell.history.push(value);
+        }
+        shell.historyIndex = null;
+
         renderTypedLine(shell);
         await routeCommand(value, shell);
     });
