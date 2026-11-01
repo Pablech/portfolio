@@ -23,9 +23,12 @@ const PROBE_PATTERNS: &[&str] = &[
 pub async fn tarpit_scanners(State(tarpit): State<Arc<TarpitState>>,
         req: Request<axum::body::Body>, next: Next, ) -> Response {
 
-    let path = req.uri().path();
+    let uri = req.uri();
+    let path_and_query = uri.path_and_query()
+        .map(|pq| pq.as_str())
+        .unwrap_or_else(|| uri.path());
 
-    let is_probe = PROBE_PATTERNS.iter().any(|&pattern| path.contains(pattern));
+    let is_probe = PROBE_PATTERNS.iter().any(|&pattern| path_and_query.contains(pattern));
 
     if is_probe {
         let ip = get_ip(&req);
@@ -44,7 +47,7 @@ pub async fn tarpit_scanners(State(tarpit): State<Arc<TarpitState>>,
         let sc_ok = StatusCode::OK;
         tracing::warn!(
             "TARPIT: Scanner ip={} status={} delay={} path={} user-agent={:.20}",
-            ip, sc_ok, delay_seconds, path, ua,
+            ip, sc_ok, delay_seconds, path_and_query, ua,
         );
 
         sleep(Duration::from_secs(delay_seconds)).await;
