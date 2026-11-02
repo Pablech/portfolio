@@ -6,8 +6,10 @@ use axum::{
 };
 use tracing::{warn, info};
 
-use crate::core::get_ip::get_ip;
-use crate::core::get_user_agent::get_ua;
+use crate::core::extract::{
+    user_agent::get_ua,
+    ip::get_ip,
+};
 
 pub async fn log_rate_limit(req: Request, next: Next) -> Response {
 

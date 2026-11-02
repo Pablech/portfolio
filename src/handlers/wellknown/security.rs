@@ -1,7 +1,7 @@
 use axum::{http::{header, StatusCode}, response::{IntoResponse, Response}};
 
 // route = "/.well-known/security.txt"
-pub async fn security_txt_handler() -> Response {
+pub async fn security_txt() -> Response {
     let body = "Contact: contato@pablech-dev.com\n\
         Preferred-Languages: pt, en, es\n";
     

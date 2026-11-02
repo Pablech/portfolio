@@ -1,7 +1,7 @@
 use axum::{http::{header, StatusCode}, response::{IntoResponse, Response}};
 
 // route = "/llms.txt"
-pub async fn llms_txt_handler() -> Response {
+pub async fn llms_txt() -> Response {
     let body: &str = "# Pablech-dev\n\n\
         > Portfólio interativo de programador simulando um ambiente TTY (Terminal), desenvolvido em Rust (Axum) e JavaScript.\n\n\
         ## Secções Principais\n\

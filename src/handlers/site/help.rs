@@ -16,6 +16,6 @@ static HELP_OUTPUT: LazyLock<String> = LazyLock::new(|| {
     ])
 });
 
-pub async fn help_handler() -> ([(header::HeaderName, &'static str); 1], Json<BasicRes>) {
+pub async fn help() -> ([(header::HeaderName, &'static str); 1], Json<BasicRes>) {
     ([(header::CACHE_CONTROL, "no-store")], Json(BasicRes { output: HELP_OUTPUT.clone() }))
 }

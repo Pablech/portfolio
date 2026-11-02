@@ -6,7 +6,7 @@ use tracing::warn;
 use std::{sync::RwLock, time::Instant};
 
 use crate::repositories::httpc::httpc::HttpC;
-use crate::core::env_settings::EnvSetting;
+use crate::core::env::EnvSetting;
 use crate::repositories::github::models::{
     Repo, RepoContent, RepoFile, RepoInfo
 };

@@ -9,9 +9,11 @@ use tokio::time::{sleep, Duration};
 use rand::Rng;
 
 use crate::core::{
-    ddos_protect::TarpitState,
-    get_ip::get_ip,
-    get_user_agent::get_ua,
+    ddos::TarpitState,
+    extract::{
+        user_agent::get_ua,
+        ip::get_ip,
+    },
 };
 
 const PROBE_PATTERNS: &[&str] = &[

@@ -11,7 +11,7 @@ mod handlers;
 
 use repositories::github::github::GitHub;
 use repositories::httpc::httpc::HttpC;
-use core::env_settings::EnvSetting;
+use core::env::EnvSetting;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {

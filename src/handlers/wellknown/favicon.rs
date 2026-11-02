@@ -2,7 +2,7 @@ use axum::http::{header, StatusCode};
 use axum::response::{IntoResponse, Response};
 
 // route = "/favicon.ico"
-pub async fn favicon_ico_handler() -> Response {
+pub async fn favicon() -> Response {
     let ico = include_bytes!("../../../assets/favicon.ico");
     
     (StatusCode::OK, [(header::CONTENT_TYPE, "image/x-icon"),

@@ -10,7 +10,7 @@ export function cmdError(value, suggestion = null) {
     if (!suggestion) {
         return `<span style='color:red;'>[!] Comando desconhecido: '${value}'. Digita 'help'.</span>`;
     } else {
-        return `<span style='color:yellow;'>[?] Commando '${value}' não encontrado. Similar cmd: ${suggestion}.</span>`
+        return `<span style='color:red;'>[?] Commando '${value}' não encontrado. Similar cmd: ${suggestion}.</span>`
     }
 }
 
