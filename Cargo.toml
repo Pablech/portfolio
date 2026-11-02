@@ -12,7 +12,7 @@ askama = "0.12"
 askama_axum = "0.4"
 reqwest = { version = "0.12", features = ["json", "gzip", "brotli", "deflate"] }
 tracing = "0.1"
-tracing-subscriber = "0.3"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt", "time"] }
 dotenvy = "0.15.7"
 tower-http = { version = "0.5", features = ["fs", "trace"] }
 anyhow = "1.0"
@@ -30,5 +30,5 @@ futures-util = "0.3"
 chrono = "0.4"
 tokio-tungstenite = "0.24"
 rand = "0.8"
-time= "0.3"
+time = { version = "0.3", features = ["macros"] }
 include_dir = "0.7.4"
