@@ -19,6 +19,7 @@ use crate::core::{
     logging::{log_rate_limit, request_logger},
     tartip::tarpit_scanners,
     ddos::TarpitState,
+    security_header::security_header,
 };
 
 
@@ -78,6 +79,7 @@ pub fn create_router(gh: Arc<GitHub>, env: Arc<EnvSetting>, ) -> Router {
         .merge(bot_router)
         .nest("/api", api_router)
         // .nest("/game/ws", game_conn_4_router)
+        .layer(middleware::from_fn(security_header))
         .layer(middleware::from_fn(request_logger))
         .layer(middleware::from_fn(log_rate_limit))
         .layer(middleware::from_fn_with_state(tarpit.clone(), tarpit_scanners))
