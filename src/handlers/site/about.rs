@@ -54,6 +54,6 @@ fn read_field(entry: &Dir<'static>, file_name: &str) -> Option<&'static str> {
 }
 
 // route = "/api/about"
-pub async fn about_handler() -> ([(header::HeaderName, &'static str); 1], Json<BasicRes>) {
+pub async fn about() -> ([(header::HeaderName, &'static str); 1], Json<BasicRes>) {
     ([(header::CACHE_CONTROL, "no-store")], Json(BasicRes { output: ABOUT_OUTPUT.clone() }))
 }

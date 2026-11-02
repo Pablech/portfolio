@@ -11,7 +11,7 @@ struct SitemapRoute {
 }
 
 // route =  "/sitemap.xml"
-pub async fn sitemap_handler() -> Response {
+pub async fn sitemap() -> Response {
     let routes = vec![
         SitemapRoute { loc: "https://pablech-dev.com/", changefreq: "weekly", priority: 1.0 },
         SitemapRoute { loc: "https://pablech-dev.com/about", changefreq: "monthly", priority: 0.8 },

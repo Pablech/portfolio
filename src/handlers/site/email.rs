@@ -4,10 +4,10 @@ use lettre::{Message, SmtpTransport, Transport, message::Mailbox, Address};
 use lettre::transport::smtp::authentication::Credentials;
 
 use crate::handlers::models::{SenfEmailReq, BasicRes};
-use crate::core::env_settings::EnvSetting;
+use crate::core::env::EnvSetting;
 
 // route = "/api/send-email"
-pub async fn send_email_handler(State(env): State<Arc<EnvSetting>>,
+pub async fn send_email(State(env): State<Arc<EnvSetting>>,
         Json(payload): Json<SenfEmailReq>) -> Json<BasicRes> {
     
     let user_smtp = env.user_smtp.clone();

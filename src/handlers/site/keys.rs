@@ -16,6 +16,6 @@ static KEYS_OUTPUT: LazyLock<String> = LazyLock::new(|| {
     ])
 });
 
-pub async fn keys_handler() -> ([(header::HeaderName, &'static str); 1], Json<BasicRes>) {
+pub async fn keys() -> ([(header::HeaderName, &'static str); 1], Json<BasicRes>) {
     ([(header::CACHE_CONTROL, "no-store")], Json(BasicRes { output: KEYS_OUTPUT.clone() }))
 }

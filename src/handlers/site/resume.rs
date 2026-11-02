@@ -6,7 +6,7 @@ use axum::{
 const RESUME_PDF_BYTES: &[u8] = include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/static/resume.pdf"));
 
 // route = "/api/resume"
-pub async fn resume_pdf_handler() -> impl IntoResponse {
+pub async fn resume() -> impl IntoResponse {
     (
         [
             (header::CONTENT_TYPE, "application/pdf"),

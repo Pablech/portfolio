@@ -3,7 +3,7 @@ use std::time::Duration;
 use reqwest::{Method, header::HeaderMap};
 use tracing::warn;
 
-use crate::core::env_settings::EnvSetting;
+use crate::core::env::EnvSetting;
 
 
 #[derive(Clone)]
