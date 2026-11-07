@@ -1,8 +1,7 @@
 use std::sync::Arc;
-
 use dashmap::DashMap;
 use tokio::sync::Mutex;
-use anyhow::Error;
+use anyhow::{Error, anyhow};
 
 use crate::repositories::games::{
     Agent, CpuBrain, GameError, GameHub, GameLogic, GameRoom, GameState, 
@@ -18,11 +17,9 @@ impl GameHub {
         -> Result<(String, String), Error> {
 
             let room_id = generate_token()[..8].to_string();
-            let token = generate_token();
-
-            if let Some(h) = agents.first() {
-                h.token.clone().unwrap_or_default();
-            }
+            let token = agents.first()
+                .and_then(|a| a.token.clone())
+                .ok_or_else(|| anyhow!("sala sem agente host com token"))?;
 
             let room = GameRoom::<L> {
                 room_id: room_id.clone(),
@@ -45,9 +42,9 @@ impl GameHub {
 impl<L: GameLogic> GameRoom<L> {
     fn resolve_after_place(&mut self) -> Result<MoveOutcome, GameError> {
         loop {
-            let me = self.turn as u8 + 1;
+            let fig = self.turn as u8 + 1;
 
-            if self.game.check_win(me) {
+            if self.game.check_win(fig) {
                 self.finished = true;
                 return Ok(MoveOutcome::Win { 
                     output: self.game.output(&self.agents), 
@@ -70,10 +67,10 @@ impl<L: GameLogic> GameRoom<L> {
             self.turn = (self.turn + 1) % self.agents.len();
 
             if let Some(brain) = self.brains[self.turn].take() {
-                let player = self.turn as u8 + 1;
+                let fig = self.turn as u8 + 1;
                 let legal = self.game.legal_moves();
-                let mv = brain.choose(&self.game, &legal, player);
-                self.game.place(mv, player)?;
+                let mv = brain.choose(&self.game, &legal, fig);
+                self.game.place(mv, fig)?;
                 self.brains[self.turn] = Some(brain);
             }
         }
@@ -87,7 +84,7 @@ impl<L: GameLogic> GameRoom<L> {
 
 #[async_trait::async_trait]
 impl <L: GameLogic> RoomHandle for Mutex<GameRoom<L>> {
-    async fn join(&self, token: &String) -> Result<GameState, GameError> {
+    async fn join(&self, token: &str) -> Result<GameState, GameError> {
         let mut room = self.lock().await;
 
         for a in &mut room.agents {
@@ -101,7 +98,7 @@ impl <L: GameLogic> RoomHandle for Mutex<GameRoom<L>> {
         Err(GameError::ErrorJoin("token inválido para esta sala".into()))
     }
 
-    async fn play(&self, token: &String, input: &str) -> Result<GameState, GameError> {
+    async fn play(&self, token: &str, input: &str) -> Result<GameState, GameError> {
         let mut room = self.lock().await;
         if room.finished {
             return Err(GameError::ErrorMove("partida encerrada".into()));
@@ -123,7 +120,7 @@ impl <L: GameLogic> RoomHandle for Mutex<GameRoom<L>> {
         }
 
         let player = room.turn as u8 + 1;
-        let _ = room.game.place(mv, player)?;
+        room.game.place(mv, player)?;
         let outcome = room.resolve_after_place()?;
         Ok(GameState::State(outcome))
     }

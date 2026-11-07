@@ -1,27 +1,28 @@
-use serde::{Deserialize, Serialize};
+use rand::seq::SliceRandom;
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct Cpu {
-    pub name: String,
-    pub fig: String,
-    pub player_fig: String
+use crate::repositories::games::structs::{Cpu, Human};
+
+const CPU_FIGS: &[char] = &['@', '&', '%', 'C', '?', '$', '#'];
+
+impl Human {
+    pub fn new(name: String, fig: char) -> Self {
+        Self { name: name, fig: fig }
+    }
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct Human {
-    pub name: String,
-    pub fig: String,
-}
+impl Cpu {
+    pub fn new(figs: Vec<char>) ->Self {
+        let mut candidates: Vec<char> = CPU_FIGS
+            .iter()
+            .copied()
+            .filter(|f| !figs.contains(f))
+            .collect();
 
-#[derive(Debug, Clone)]
-pub enum AgentKind {
-    Human,
-    Cpu,
-}
-
-pub struct Agent {
-    pub kind: AgentKind,
-    pub name: String,
-    pub fig: String,
-    pub token: Option<String>,
+        let fig = candidates
+            .choose_mut(&mut rand::thread_rng())
+            .copied()
+            .unwrap_or('?');
+        
+        Self { name: "Cpu.ai".into(), fig: fig, players_fig: figs }
+    }
 }

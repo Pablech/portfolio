@@ -3,8 +3,9 @@ mod players;
 mod ws;
 mod utils;
 mod game;
+mod connect4;
+mod registry;
 
-pub use players::{Agent};
 pub use utils::generate_token;
 pub use structs::{
     GameHub, 
@@ -12,6 +13,7 @@ pub use structs::{
     GameRoom,
     CpuBrain,
     RoomHandle,
+    Agent,
 };
 pub use ws::{
     GameError,

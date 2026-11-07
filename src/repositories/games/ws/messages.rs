@@ -11,6 +11,7 @@ pub enum MoveOutcome {
 pub enum GameError {
     ErrorMove(String),
     ErrorJoin(String),
+    ErrorValidation(String),
 }
 
 #[derive(Debug, Deserialize, Serialize)]
