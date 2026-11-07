@@ -37,6 +37,21 @@ pub struct SectionContent<'a> {
     pub content: &'a str,
 }
 
+#[derive(Deserialize)]
+pub struct CreateRoomReq {
+    pub game: String,
+    pub name: Option<String>,
+    pub fig: Option<char>,
+    pub vs_cpu: Option<bool>,
+}
+
+#[derive(Serialize)]
+pub struct CreateRoomResp {
+    pub room_id: String,
+    pub token: String,
+    pub guest_token: Option<String>,
+}
+
 impl TerminalRenderable for Project {
     fn header(&self) -> String {
         self.name.to_string()

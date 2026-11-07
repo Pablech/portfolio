@@ -3,15 +3,18 @@ use tokio::net::TcpListener;
 use std::sync::Arc;
 use std::net::SocketAddr;
 
-mod core;
-mod repositories;
-mod app;
-mod handlers;
-
-use core::logging::configure_log;
-use repositories::github::github::GitHub;
-use repositories::httpc::httpc::HttpC;
-use core::env::EnvSetting;
+use site::{
+    core::{
+        logging::configure_log,
+        env::EnvSetting,
+    },
+    repositories::{
+        github::github::GitHub,
+        httpc::httpc::HttpC,
+        games::GameHub,
+    },
+    app::create_router,
+};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
@@ -25,10 +28,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     if !httpc.ready() {warn!("HttpC is not ready"); return Err("HttpC not ready".into());}
 
     let gh = GitHub::new(&env, &httpc);
+    let games = GameHub::new();
+
     let shared_gh = Arc::new(gh);
     let shared_env = Arc::new(env);
+    let shared_games = Arc::new(games);
 
-    let app = app::create_router(shared_gh, shared_env, );
+
+    let app = create_router(shared_gh, shared_env, shared_games);
     tracing::info!("Listening on: {}", addr);
     let listener = TcpListener::bind(addr).await?;
 

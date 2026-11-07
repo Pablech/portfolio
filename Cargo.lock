@@ -2093,6 +2093,7 @@ dependencies = [
  "chrono",
  "dashmap 6.2.1",
  "dotenvy",
+ "futures",
  "futures-util",
  "hex",
  "include_dir",

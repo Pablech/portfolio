@@ -1,6 +1,6 @@
 use std::sync::Arc;
 use dashmap::DashMap;
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, broadcast};
 use anyhow::{Error, anyhow};
 
 use crate::repositories::games::{
@@ -10,7 +10,22 @@ use crate::repositories::games::{
 
 impl GameHub {
     pub fn new() -> Self {
-        Self { rooms: DashMap::new() }
+        Self { 
+            rooms: DashMap::new(), 
+            channels: DashMap::new(), 
+        }
+    }
+
+    pub fn get_room(&self, room_id: &str) -> Option<Arc<dyn RoomHandle>> {
+        self.rooms.get(room_id).map(|r| r.value().clone())
+    }
+
+    pub fn channel_for(&self, room_id: &str, capacity: usize) -> broadcast::Sender<GameState> {
+        self.channels
+            .entry(room_id.to_string())
+            .or_insert_with(|| broadcast::channel(capacity).0)
+            .value()
+            .clone()
     }
 
     pub fn create_room<L: GameLogic>(&self, agents: Vec<Agent>, brains: Vec<Option<Box<dyn CpuBrain<L>>>>,) 
@@ -112,11 +127,16 @@ impl <L: GameLogic> RoomHandle for Mutex<GameRoom<L>> {
         }
 
         let legal = room.game.legal_moves();
-        let mv: usize = input.trim().parse()
+        let mv: usize = input.trim().parse::<usize>()
             .map_err(|_| GameError::ErrorMove(format!("entrada {} inválida", input)))?;
 
+        let mv = mv.checked_sub(1)
+            .ok_or_else(|| GameError::ErrorMove("coluna começa em 1".into()))?;
+
         if !legal.contains(&mv) {
-            return Err(GameError::ErrorMove(format!("movimento {} ilegal", mv)));
+            let col = mv + 1;
+            let reason = if (0..7).contains(&mv) { "coluna cheia" } else { "coluna inválida" }; 
+            return Err(GameError::ErrorMove(format!("coluna {}: {}", col,  reason)));
         }
 
         let player = room.turn as u8 + 1;
