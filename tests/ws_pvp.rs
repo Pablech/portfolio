@@ -42,15 +42,13 @@ async fn pvp_broadcast_entrega_para_os_dois() {
     let (mut w1, mut r1) = s1.split();
     let (mut w2, mut r2) = s2.split();
 
-    // join de ambos
     w1.send(Message::text(r#"{"action":"join","data":{"token":"TOKEN1"}}"#.replace("TOKEN1", &t1))).await.unwrap();
     w2.send(Message::text(r#"{"action":"join","data":{"token":"TOKEN2"}}"#.replace("TOKEN2", &t2))).await.unwrap();
-    let j1 = r1.next().await.unwrap().unwrap(); // {"status":"joined"...}
+    let j1 = r1.next().await.unwrap().unwrap(); 
     let j2 = r2.next().await.unwrap().unwrap();
     assert!(j1.to_string().contains("\"joined\""));
     assert!(j2.to_string().contains("alice") || j2.to_string().contains("p2"));
 
-    // alice joga; OS DOIS devem receber o mesmo estado
     w1.send(Message::text(format!(
         r#"{{"action":"play","data":{{"token":"{}","input":"4"}}}}"#, t1))).await.unwrap();
 
@@ -61,11 +59,10 @@ async fn pvp_broadcast_entrega_para_os_dois() {
     assert!(st2.contains("X"), "convidado recebeu via broadcast sem jogar");
     assert_eq!(st1, st2, "ambos devem ver o MESMO estado");
 
-    // bob (convidado) joga a partir do que viu no broadcast
     w2.send(Message::text(format!(
         r#"{{"action":"play","data":{{"token":"{}","input":"1"}}}}"#, t2))).await.unwrap();
-    let s2n = r2.next().await.unwrap().unwrap().to_string(); // resposta direta do autor
-    let s1n = r1.next().await.unwrap().unwrap().to_string(); // eco via broadcast pra alice
+    let s2n = r2.next().await.unwrap().unwrap().to_string(); 
+    let s1n = r1.next().await.unwrap().unwrap().to_string(); 
     assert!(s2n.contains("&"), "peça do bob no board");
     assert_eq!(s1n, s2n);
 }
