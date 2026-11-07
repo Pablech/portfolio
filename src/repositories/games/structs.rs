@@ -1,6 +1,7 @@
 use std::sync::Arc;
 use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
+use tokio::sync::broadcast;
 
 use crate::repositories::games::ws::{GameError, GameState};
 
@@ -34,6 +35,7 @@ pub trait RoomHandle: Send + Sync {
 
 pub struct GameHub {
     pub rooms: DashMap<String, Arc<dyn RoomHandle>>,
+    pub channels: DashMap<String, broadcast::Sender<GameState>>
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -60,4 +62,10 @@ pub struct Agent {
     pub name: String,
     pub fig: char,
     pub token: Option<String>,
+}
+
+pub struct CreatedRoom {
+    pub room_id: String,
+    pub host_token: String,
+    pub guest_token: Option<String>,
 }

@@ -1,9 +1,6 @@
 use std::{sync::Arc,};
 use axum::{
-    Router, 
-    extract::FromRef, 
-    middleware::self, 
-    routing::{get, post}
+    Router, middleware::self, routing::{get, post}
 };
 use tower_http::services::ServeDir;
 use tower_governor::{
@@ -12,7 +9,9 @@ use tower_governor::{
     key_extractor::SmartIpKeyExtractor
 };
 
-use crate::repositories::github::github::GitHub;
+use crate::{repositories::{
+    games::{GameHub, handler}, github::github::GitHub,
+}, state::AppState};
 use crate::handlers::{site, wellknown};
 use crate::core::{
     env::EnvSetting,
@@ -22,28 +21,9 @@ use crate::core::{
     security_header::security_header,
 };
 
-
-#[derive(Clone)]
-pub struct AppState {
-    pub gh: Arc<GitHub>,
-    pub env: Arc<EnvSetting>,
-}
-
-impl FromRef<AppState> for Arc<GitHub> {
-    fn from_ref(state: &AppState) -> Arc<GitHub> {
-        state.gh.clone()
-    }
-}
-
-impl FromRef<AppState> for Arc<EnvSetting> {
-    fn from_ref(state: &AppState) -> Arc<EnvSetting> {
-        state.env.clone()
-    }
-}
-
-pub fn create_router(gh: Arc<GitHub>, env: Arc<EnvSetting>, ) -> Router {
+pub fn create_router(gh: Arc<GitHub>, env: Arc<EnvSetting>, games: Arc<GameHub>) -> Router {
     let serve_assets = ServeDir::new("assets");
-    let state = AppState { gh, env };
+    let state = AppState { gh, env, games };
     let tarpit = Arc::new(TarpitState::new());
 
     let create_rate_limit = |per_sec: u64, burst: u32| {
@@ -58,6 +38,7 @@ pub fn create_router(gh: Arc<GitHub>, env: Arc<EnvSetting>, ) -> Router {
 
     let gh_conf = create_rate_limit(1, 5);
     let email_conf = create_rate_limit(1, 2);
+    let game_conf = create_rate_limit(1, 3);
 
     let api_router = Router::new()
         .route("/help", get(site::help))
@@ -74,9 +55,15 @@ pub fn create_router(gh: Arc<GitHub>, env: Arc<EnvSetting>, ) -> Router {
         .route("/favicon.ico", get(wellknown::favicon))
         .route("/sitemap.xml", get(wellknown::sitemap));
 
+    let games_router = Router::new()
+        .route("/games/rooms", post(site::create_room))
+            .layer(GovernorLayer { config: game_conf })
+        .route("/games/ws/:room_id", get(handler));
+
     Router::new()
         .route("/", get(site::home))
         .merge(bot_router)
+        .merge(games_router)
         .nest("/api", api_router)
         // .nest("/game/ws", game_conn_4_router)
         .layer(middleware::from_fn(security_header))
