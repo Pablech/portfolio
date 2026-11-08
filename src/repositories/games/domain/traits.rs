@@ -20,4 +20,5 @@ pub trait CpuBrain<L: GameLogic>: Send + Sync + 'static {
 pub trait RoomHandle: Send + Sync {
     async fn join(&self, token: &str, req_id: Option<&str>) -> Result<GameState, GameError>;
     async fn play(&self, token: &str, input: &str, req_id: Option<&str>) -> Result<PlayResult, GameError>;
+    async fn rematch(&self, token: &str, accept: bool, req_id: Option<&str>) -> Result<PlayResult, GameError>;
 }

@@ -5,8 +5,9 @@ mod tests {
     use tokio::sync::Mutex;
 
     use site::repositories::games::{
-            Agent, AgentKind, GameError, GameLogic, GameRoom, GameState, MoveOutcome, PlayResult, RoomHandle, connect4::Conn4Table, registry::build_agents, 
-            
+            Agent, AgentKind, GameError, GameLogic, GameRoom, GameState, 
+            MoveOutcome, PlayResult, RoomHandle, 
+            connect4::Conn4Table, registry::build_agents, 
         };
 
     fn human_agents() -> Vec<Agent> {
@@ -35,6 +36,8 @@ mod tests {
             finished: false,
             brains: vec![None, None],
             request_cache: LruCache::new(NonZeroUsize::new(10).unwrap()),
+            rematch_votes: vec![false; 2],
+            round: 0,
         })
     }
 

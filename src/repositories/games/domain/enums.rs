@@ -6,6 +6,8 @@ pub enum MoveOutcome {
     Continue { output: String, next_player: String },
     Win { output: String, winner: String },
     Draw { output: String },
+    RematchPending { who: String },
+    RematchDeclined { by: String },
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -27,7 +29,8 @@ pub enum GameState {
 #[serde(tag = "action", content = "data", rename_all = "lowercase")]
 pub enum ClientMsg {
     Join { token: String, req_id: Option<String> },
-    Play { token: String, input: String, req_id: Option<String> }
+    Play { token: String, input: String, req_id: Option<String> },
+    Rematch { token: String, accept: bool, req_id: Option<String>},
 }
 
 #[derive(Debug, Serialize)]
@@ -48,6 +51,7 @@ pub enum AgentKind {
 pub enum PlayResult {
     Fresh(GameState),
     Replayed(GameState),
+    Dead(GameState),
 }
 
 pub enum GameKind {

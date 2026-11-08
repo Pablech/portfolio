@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{sync::{Arc, atomic::AtomicUsize}, time::Duration};
 use dashmap::DashMap;
 use lru::LruCache;
 use serde::{Deserialize, Serialize};
@@ -36,8 +36,9 @@ pub struct CreatedRoom {
 }
 
 pub struct GameHub {
-    pub rooms: DashMap<String, Arc<dyn RoomHandle>>,
-    pub channels: DashMap<String, broadcast::Sender<GameState>>
+    pub rooms: DashMap<String, Arc<LiveRoom>>,
+    pub reap_grace: Duration,
+    pub orphan_ttl: Duration,
 }
 
 pub struct GameRoom<L: GameLogic> {
@@ -48,4 +49,12 @@ pub struct GameRoom<L: GameLogic> {
     pub finished: bool,
     pub brains: Vec<Option<Box<dyn CpuBrain<L>>>>,
     pub request_cache: LruCache<String, GameState>,
+    pub rematch_votes: Vec<bool>,
+    pub round: usize,
+}
+
+pub struct LiveRoom {
+    pub handle: Arc<dyn RoomHandle>,
+    pub tx: broadcast::Sender<GameState>,
+    pub live: AtomicUsize,
 }
