@@ -1,4 +1,4 @@
-use std::{sync::{Arc, atomic::AtomicUsize}, time::Duration};
+use std::{sync::{Arc, atomic::{AtomicBool, AtomicUsize}}, time::Duration};
 use dashmap::DashMap;
 use lru::LruCache;
 use serde::{Deserialize, Serialize};
@@ -57,4 +57,5 @@ pub struct LiveRoom {
     pub handle: Arc<dyn RoomHandle>,
     pub tx: broadcast::Sender<GameState>,
     pub live: AtomicUsize,
+    pub ever_joined: AtomicBool,
 }
