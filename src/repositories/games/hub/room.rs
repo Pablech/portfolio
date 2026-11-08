@@ -1,4 +1,4 @@
-use std::{num::NonZeroUsize, sync::{Arc, atomic::{AtomicUsize, Ordering}}, time::Duration};
+use std::{num::NonZeroUsize, sync::{Arc, atomic::{AtomicBool, AtomicUsize, Ordering}}, time::Duration};
 use dashmap::DashMap;
 use lru::LruCache;
 use tokio::sync::{Mutex, broadcast};
@@ -31,14 +31,17 @@ impl GameHub {
 
     pub fn enter(self: &Arc<Self>, id: &str) -> Option<Arc<LiveRoom>> {
         let r = self.rooms.get(id)?.clone();
-        r.live.fetch_add(1, Ordering::SeqCst);
+        let prev = r.live.fetch_add(1, Ordering::SeqCst);
+        if prev == 0 {
+            r.ever_joined.store(true, Ordering::SeqCst);   // PRIMEIRA visita: aqui
+        }
         Some(r)
     }
 
     pub fn exit(self: &Arc<Self>, id: &str, live: &Arc<LiveRoom>) {
-        let prev = live.live.fetch_sub(1, Ordering::SeqCst);
+        let prev = live.live.fetch_sub(1, Ordering::SeqCst); 
         if prev == 1 {
-            self.watch_orphan(id.to_string(), live.clone(), self.reap_grace, "vazia após grace");
+            self.reap_after(id.to_string(), live.clone(), self.reap_grace, "vazia após grace", false);
         }
     }
 
@@ -66,23 +69,27 @@ impl GameHub {
             })),
             tx,
             live: AtomicUsize::new(0),
+            ever_joined: AtomicBool::new(false),
         });
 
         self.rooms.insert(room_id.clone(), live.clone());
-        self.watch_orphan(room_id.clone(), live.clone(), self.orphan_ttl, "vazia após ttl");
+        self.reap_after(room_id.clone(), live.clone(), self.orphan_ttl, "órfã: nunca conectada", true);
 
         Ok((room_id, token))
     }
 
-    fn watch_orphan(self: &Arc<Self>, room_id: String, live: Arc<LiveRoom>, sleep: Duration, reason: &'static str) {
+    fn reap_after(self: &Arc<Self>, room_id: String, live: Arc<LiveRoom>,
+                delay: Duration, reason: &'static str, only_if_never_visited: bool) {
+
         let hub = self.clone();
+
         tokio::spawn(async move {
-            tokio::time::sleep(sleep).await;
-
+            tokio::time::sleep(delay).await;
             let ceifou = hub.rooms.remove_if(&room_id, |_k, v| {
-                Arc::ptr_eq(v, &live) && v.live.load(std::sync::atomic::Ordering::SeqCst) == 0
+                Arc::ptr_eq(v, &live)
+                    && v.live.load(Ordering::SeqCst) == 0
+                    && (!only_if_never_visited || !v.ever_joined.load(Ordering::SeqCst))
             });
-
             if ceifou.is_some() {
                 tracing::info!("sala {} ceifada ({})", room_id, reason);
             }
