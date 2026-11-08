@@ -10,7 +10,7 @@ use tower_governor::{
 };
 
 use crate::{repositories::{
-    games::{GameHub, handler}, github::github::GitHub,
+    games::{GameHub, ws_handler}, github::github::GitHub,
 }, state::AppState};
 use crate::handlers::{site, wellknown};
 use crate::core::{
@@ -58,7 +58,7 @@ pub fn create_router(gh: Arc<GitHub>, env: Arc<EnvSetting>, games: Arc<GameHub>)
     let games_router = Router::new()
         .route("/games/rooms", post(site::create_room))
             .layer(GovernorLayer { config: game_conf })
-        .route("/games/ws/:room_id", get(handler));
+        .route("/games/ws/:room_id", get(ws_handler));
 
     Router::new()
         .route("/", get(site::home))

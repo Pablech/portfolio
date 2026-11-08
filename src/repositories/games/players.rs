@@ -1,6 +1,6 @@
 use rand::seq::SliceRandom;
 
-use crate::repositories::games::structs::{Cpu, Human};
+use crate::repositories::games::{Cpu, Human};
 
 const CPU_FIGS: &[char] = &['@', '&', '%', 'C', '?', '$', '#'];
 

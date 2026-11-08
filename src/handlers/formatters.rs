@@ -1,4 +1,4 @@
-use crate::handlers::models::TerminalRenderable;
+use crate::handlers::structs::TerminalRenderable;
 
 fn format_block(title: &str, content: &str) -> String {
     if content.trim().is_empty() {

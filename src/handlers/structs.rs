@@ -43,6 +43,7 @@ pub struct CreateRoomReq {
     pub name: Option<String>,
     pub fig: Option<char>,
     pub vs_cpu: Option<bool>,
+    pub req_id: Option<String>,
 }
 
 #[derive(Serialize)]

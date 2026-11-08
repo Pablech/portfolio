@@ -1,18 +1,13 @@
 #[cfg(test)]
 mod tests {
-    // use super::*;
+    use std::num::NonZeroUsize;
+    use lru::LruCache;
     use tokio::sync::Mutex;
 
-    use site::{
-        repositories::games::{
-            Agent, GameError, GameLogic, GameRoom, RoomHandle,
-            ws::{GameState, MoveOutcome},
-            connect4::Conn4Table,
-            registry::build_agents,
-            structs::AgentKind,
+    use site::repositories::games::{
+            Agent, AgentKind, GameError, GameLogic, GameRoom, GameState, MoveOutcome, PlayResult, RoomHandle, connect4::Conn4Table, registry::build_agents, 
             
-        }
-    };
+        };
 
     fn human_agents() -> Vec<Agent> {
         vec![
@@ -39,6 +34,7 @@ mod tests {
             turn: 0,
             finished: false,
             brains: vec![None, None],
+            request_cache: LruCache::new(NonZeroUsize::new(10).unwrap()),
         })
     }
 
@@ -68,16 +64,16 @@ mod tests {
             ("tok-p1", "7", "WIN"),
         ];
         for (token, input, expect) in seq {
-            let st = room.play(token, input).await.unwrap();
+            let st = room.play(token, input, None).await.unwrap();
             match st {
-                GameState::State(MoveOutcome::Win { winner, .. }) => assert_eq!(winner, "alice"),
-                GameState::State(MoveOutcome::Continue { next_player, .. }) =>
+                PlayResult::Fresh(GameState::State(MoveOutcome::Win { winner, .. })) => assert_eq!(winner, "alice"),
+                PlayResult::Fresh(GameState::State(MoveOutcome::Continue { next_player, .. }) )=>
                     assert_eq!(next_player, expect),
                 other => panic!("inesperado: {:?}", other),
             }
         }
 
-        let err = room.play("tok-p1", "4").await.unwrap_err();
+        let err = room.play("tok-p1", "4", None).await.unwrap_err();
         assert!(matches!(err, GameError::ErrorMove(ref m) if m.contains("encerrada")));
     }
 
@@ -126,12 +122,12 @@ mod tests {
         ];
 
         for (token, input, expect) in seq {
-            let st = room.play(token, input).await.unwrap();
+            let st = room.play(token, input, None).await.unwrap();
             match st {
-                GameState::State(MoveOutcome::Win { winner, .. }) => {
+                PlayResult::Fresh(GameState::State(MoveOutcome::Win { winner, .. }) )=> {
                     assert_eq!(winner, "alice");
                 }
-                GameState::State(MoveOutcome::Continue { next_player, .. }) => {
+                PlayResult::Fresh(GameState::State(MoveOutcome::Continue { next_player, .. })) => {
                     assert_eq!(next_player, expect);
                 }
                 other => panic!("estado inesperado: {:?}", other),
@@ -143,19 +139,19 @@ mod tests {
     async fn turno_certo_e_validacao_de_token() {
         let room = human_room();
 
-        let err = room.play("tok-p2", "0").await.unwrap_err();
+        let err = room.play("tok-p2", "0", None).await.unwrap_err();
         assert!(matches!(err, GameError::ErrorMove(ref m) if m.contains("turno")));
 
-        let err = room.play("token-falso", "0").await.unwrap_err();
+        let err = room.play("token-falso", "0", None).await.unwrap_err();
         assert!(matches!(err, GameError::ErrorJoin(_)));
 
-        let err = room.play("tok-p1", "banana").await.unwrap_err();
+        let err = room.play("tok-p1", "banana", None).await.unwrap_err();
         assert!(matches!(err, GameError::ErrorMove(_)));
 
-        let err = room.play("tok-p1", "99").await.unwrap_err();
+        let err = room.play("tok-p1", "99", None).await.unwrap_err();
         assert!(matches!(err, GameError::ErrorMove(_)));
 
-        let info = room.join("tok-p2").await.unwrap();
+        let info = room.join("tok-p2", None).await.unwrap();
         let GameState::JoinInfo { joined, room_id } = info else {
             panic!("join deveria devolver JoinInfo");
         };
@@ -172,9 +168,9 @@ mod tests {
             ("tok-p1", "7"), ("tok-p2", "3"),
             ("tok-p1", "7"),
         ] {
-            room.play(token, input).await.unwrap();
+            room.play(token, input, None).await.unwrap();
         }
-        let err = room.play("tok-p1", "5").await.unwrap_err();
+        let err = room.play("tok-p1", "5", None).await.unwrap_err();
         assert!(matches!(err, GameError::ErrorMove(ref m) if m.contains("encerrada")));
     }
 
@@ -188,5 +184,39 @@ mod tests {
 
         let pvp = build_agents("a".into(), 'X', false);
         assert!(pvp.iter().all(|a| a.token.is_some()), "pvp: ambos com token");
+    }
+
+    #[tokio::test]
+    async fn test_idempotencia_request_cache() {
+        let room = human_room();
+
+        let st1 = match room.play("tok-p1", "7", Some("req-1")).await.unwrap() {
+            PlayResult::Fresh(GameState::State(
+                MoveOutcome::Continue { next_player, .. }
+            )) => next_player,
+            other => panic!("primeira deve ser Fresh+Continue: {:?}", other),
+        };
+        assert_eq!(st1, "bob");
+
+        let st2 = match room.play("tok-p1", "7", Some("req-1")).await.unwrap() {
+            PlayResult::Replayed(GameState::State(
+                MoveOutcome::Continue { next_player, .. }
+            )) => next_player,
+            other => panic!("retry deve ser Replayed (ordem cache->turno?): {:?}", other),
+        };
+        assert_eq!(st2, "bob", "replay devolve o estado cacheado");
+
+        let err = room.play("tok-p1", "4", Some("req-2")).await.unwrap_err();
+        assert!(matches!(err, GameError::ErrorMove(ref m) if m.contains("turno")),
+            "cache é por req_id, não global: {:?}", err);
+
+        let _ = room.play("tok-p2", "banana", Some("req-3")).await.unwrap_err();
+        let st3 = match room.play("tok-p2", "4", Some("req-3")).await.unwrap() {
+            PlayResult::Fresh(GameState::State(
+                MoveOutcome::Continue { next_player, .. }
+            )) => next_player,
+            other => panic!("req_id de erro não pode estar cacheado: {:?}", other),
+        };
+        assert_eq!(st3, "alice", "bob jogou de verdade; turno voltou pra alice");
     }
 }

@@ -26,8 +26,8 @@ pub enum GameState {
 #[derive(Debug, Deserialize)]
 #[serde(tag = "action", content = "data", rename_all = "lowercase")]
 pub enum ClientMsg {
-    Join { token: String },
-    Play { token: String, input: String }
+    Join { token: String, req_id: Option<String> },
+    Play { token: String, input: String, req_id: Option<String> }
 }
 
 #[derive(Debug, Serialize)]
@@ -35,5 +35,21 @@ pub enum ClientMsg {
 pub enum ServerMsg {
     Joined { name: String, room_id: String },
     Error { message: String, fatal: bool },
-    State { state: GameState },
+    State { state: GameState, req_id: Option<String> },
+}
+
+#[derive(Debug, Clone)]
+pub enum AgentKind {
+    Human,
+    Cpu,
+}
+
+#[derive(Debug)]
+pub enum PlayResult {
+    Fresh(GameState),
+    Replayed(GameState),
+}
+
+pub enum GameKind {
+    Connect4,
 }

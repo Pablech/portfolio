@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use axum::{extract::State, http::StatusCode, Json};
 
-use crate::{handlers::models::{CreateRoomReq, CreateRoomResp}, repositories::games::{
+use crate::{handlers::structs::{CreateRoomReq, CreateRoomResp}, repositories::games::{
     CreatedRoom, GameHub, GameKind,
 }};
 

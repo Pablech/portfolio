@@ -1,10 +1,8 @@
 use anyhow::{Error, anyhow};
 
-use crate::repositories::games::{Agent, CpuBrain, CreatedRoom, GameHub, connect4::{Conn4Table, SmartishBrain}, generate_token, structs::AgentKind};
-
-pub enum GameKind {
-    Connect4,
-}
+use crate::repositories::games::{
+    Agent, AgentKind, CpuBrain, CreatedRoom, GameHub, GameKind, connect4::{Conn4Table, SmartishBrain}, generate_token, 
+};
 
 pub fn build_agents(p1_name: String, p1_fig: char, vs_cpu: bool) -> Vec<Agent> {
     let p1 = Agent {
