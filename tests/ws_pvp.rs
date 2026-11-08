@@ -18,7 +18,7 @@ async fn spawn_server() -> (String, String, String) {
     let env = std::sync::Arc::new(EnvSetting::new());
     let http = HttpC::new(&env);
     let gh = std::sync::Arc::new(GitHub::new(&env, &http));
-    let games = std::sync::Arc::new(GameHub::new());
+    let games = std::sync::Arc::new(GameHub::new(3, 4));
     let created = GameKind::Connect4
         .create(&games, "alice".into(), 'X',false).unwrap();
 

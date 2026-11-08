@@ -28,7 +28,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     if !httpc.ready() {warn!("HttpC is not ready"); return Err("HttpC not ready".into());}
 
     let gh = GitHub::new(&env, &httpc);
-    let games = GameHub::new();
+    let games = GameHub::new(env.reap_grace, env.orphan_ttl);
 
     let shared_gh = Arc::new(gh);
     let shared_env = Arc::new(env);

@@ -1,7 +1,10 @@
+use std::sync::Arc;
+
 use anyhow::{Error, anyhow};
 
 use crate::repositories::games::{
-    Agent, AgentKind, CpuBrain, CreatedRoom, GameHub, GameKind, connect4::{Conn4Table, SmartishBrain}, generate_token, 
+    Agent, AgentKind, CpuBrain, CreatedRoom, GameHub, GameKind, 
+    connect4::{Conn4Table, SmartishBrain}, generate_token, 
 };
 
 pub fn build_agents(p1_name: String, p1_fig: char, vs_cpu: bool) -> Vec<Agent> {
@@ -27,9 +30,9 @@ impl GameKind {
         }
     }
 
-    pub fn create(&self, hub: &GameHub, p1_name: String, p1_fig: char, vs_cpu: bool)
-        -> Result<CreatedRoom, Error>
-    {
+    pub fn create(&self, hub: &Arc<GameHub>, p1_name: String, p1_fig: char, vs_cpu: bool)
+        -> Result<CreatedRoom, Error> {
+
         let agents = build_agents(p1_name, p1_fig, vs_cpu);
 
         let host_token = agents[0].token.clone()

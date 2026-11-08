@@ -17,6 +17,8 @@ pub struct EnvSetting {
     pub port_smtp: String,
     pub port: String,
     pub host: String,
+    pub reap_grace: u64,
+    pub orphan_ttl: u64,
 }
 
 impl EnvSetting {
@@ -45,6 +47,10 @@ impl EnvSetting {
         let port_smtp = get_required("PORT_SMTP");
         let port = get_required("PORT");
         let host = get_required("HOST");
+        let reap_grace = get_required("REAP_GRACE")
+            .parse::<u64>().expect("reap_grace deve ser na base 10");
+        let orphan_ttl = get_required("ORPHAN_TTL")
+            .parse::<u64>().expect("orphan_ttl deve ser na base 10");
 
         if !missing_vars.is_empty() {
             error!("Variáveis de ambiente ausentes: {}", missing_vars.join(", ").to_uppercase());
@@ -56,6 +62,10 @@ impl EnvSetting {
         let request_timeout = env::var("REQUEST_TIMEOUT")
             .unwrap_or_else(|_| "10".to_string()).parse::<u64>().unwrap_or(10);
 
-        Self { git_token, user_agent, user_name, max_retries, request_timeout, url, tunner, cloudflared_cred, token_smtp, user_smtp, server_smtp, port_smtp, port, host }
+        Self { 
+            git_token, user_agent, user_name, max_retries, request_timeout, url, 
+            tunner, cloudflared_cred, token_smtp, user_smtp, server_smtp, port_smtp, 
+            port, host, reap_grace, orphan_ttl,
+        }
     }
 }
