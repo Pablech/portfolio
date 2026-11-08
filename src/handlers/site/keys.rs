@@ -2,7 +2,7 @@ use std::sync::LazyLock;
 use axum::{http::header, Json};
 
 use crate::handlers::{
-    models::{BasicRes, SectionContent},
+    structs::{BasicRes, SectionContent},
     formatters::format_section,
 };
 

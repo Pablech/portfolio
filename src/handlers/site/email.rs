@@ -3,7 +3,7 @@ use std::sync::Arc;
 use lettre::{Message, SmtpTransport, Transport, message::Mailbox, Address};
 use lettre::transport::smtp::authentication::Credentials;
 
-use crate::handlers::models::{SenfEmailReq, BasicRes};
+use crate::handlers::structs::{SenfEmailReq, BasicRes};
 use crate::core::env::EnvSetting;
 
 // route = "/api/send-email"

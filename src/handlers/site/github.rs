@@ -2,7 +2,7 @@ use axum::{Json, http::header, extract::State};
 use std::sync::Arc;
 
 use crate::repositories::github::github::GitHub;
-use crate::handlers::models::BasicRes;
+use crate::handlers::structs::BasicRes;
 
 // route = "/api/github"
 pub async fn github(State(gh): State<Arc<GitHub>>) -> ([(header::HeaderName, &'static str); 1], Json<BasicRes>) {

@@ -1,11 +1,14 @@
-use std::sync::Arc;
+use std::{num::NonZeroUsize, sync::Arc};
 use dashmap::DashMap;
+use lru::LruCache;
 use tokio::sync::{Mutex, broadcast};
 use anyhow::{Error, anyhow};
 
 use crate::repositories::games::{
-    Agent, CpuBrain, GameError, GameHub, GameLogic, GameRoom, GameState, 
-    RoomHandle, generate_token, ws::MoveOutcome, 
+    GameHub, MoveOutcome, 
+    domain::{enums::{GameError, GameState, PlayResult}, 
+    structs::{Agent, GameRoom}, 
+    traits::{CpuBrain, GameLogic, RoomHandle}}, generate_token,
 };
 
 impl GameHub {
@@ -43,6 +46,7 @@ impl GameHub {
                 turn: 0,
                 finished: false,
                 brains,
+                request_cache: LruCache::new(NonZeroUsize::new(30).unwrap()),
             };
 
             self.rooms.insert(
@@ -99,22 +103,39 @@ impl<L: GameLogic> GameRoom<L> {
 
 #[async_trait::async_trait]
 impl <L: GameLogic> RoomHandle for Mutex<GameRoom<L>> {
-    async fn join(&self, token: &str) -> Result<GameState, GameError> {
+    async fn join(&self, token: &str, req_id: Option<&str>) -> Result<GameState, GameError> {
         let mut room = self.lock().await;
+
+        if let Some(req_id) = req_id {
+            if let Some(cached_state) = room.request_cache.get(req_id) {
+                return Ok(cached_state.clone());
+            }
+        }
 
         for a in &mut room.agents {
             if a.token.as_deref() == Some(token) {
-                return Ok(GameState::JoinInfo { 
+                let res = GameState::JoinInfo { 
                     joined: a.name.clone(), 
                     room_id: room.room_id.clone()
-                });
+                };
+                if let Some(req_id) = req_id {
+                    room.request_cache.put(req_id.to_string(), res.clone());
+                } 
+                return Ok(res);
             }
         }
         Err(GameError::ErrorJoin("token inválido para esta sala".into()))
     }
 
-    async fn play(&self, token: &str, input: &str) -> Result<GameState, GameError> {
+    async fn play(&self, token: &str, input: &str, req_id: Option<&str>) -> Result<PlayResult, GameError> {
         let mut room = self.lock().await;
+
+        if let Some(req_id) =req_id {
+            if let Some(cached) = room.request_cache.get(req_id) {
+                return Ok(PlayResult::Replayed(cached.clone()));
+            }
+        }
+
         if room.finished {
             return Err(GameError::ErrorMove("partida encerrada".into()));
         }
@@ -142,6 +163,10 @@ impl <L: GameLogic> RoomHandle for Mutex<GameRoom<L>> {
         let player = room.turn as u8 + 1;
         room.game.place(mv, player)?;
         let outcome = room.resolve_after_place()?;
-        Ok(GameState::State(outcome))
+
+        if let Some(req_id) = req_id {
+            room.request_cache.put(req_id.to_string(), GameState::State(outcome.clone()));
+        }
+        Ok(PlayResult::Fresh(GameState::State(outcome)))
     }
 }

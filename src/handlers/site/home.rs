@@ -1,4 +1,4 @@
-use crate::handlers::models::PortfolioTemplate;
+use crate::handlers::structs::PortfolioTemplate;
 
 // route = "/"
 pub async fn home() -> Result<PortfolioTemplate, String> {

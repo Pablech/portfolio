@@ -3,7 +3,7 @@ use include_dir::{include_dir, Dir};
 use std::sync::LazyLock;
 
 use crate::handlers::{
-    models::{BasicRes, SectionContent, Project},
+    structs::{BasicRes, SectionContent, Project},
     formatters::format_section,
 };
 
