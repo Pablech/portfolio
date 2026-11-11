@@ -6,6 +6,7 @@ import { suggestCmd } from "../core/utils.js";
 import { defaultRegistry } from "./registries/default.js";
 import { siteRegistry } from "./registries/site.js";
 import { gamesRegistry } from "./registries/games.js";
+import { cmdParser } from "../core/parser.js";
 
 const registriesByKind = { 
     [KIND_OS]: { ...defaultRegistry, ...siteRegistry },
@@ -37,7 +38,12 @@ export async function routeCommand(value, shell) {
     
     const name = value.split(/\s+/)[0];
     const handler = registry[name];
-    if (handler) return handler(value, shell);
+
+    if (handler) {
+        const parsed = cmdParser(shell, value, allCommands);
+        if (!parsed) return;
+        return handler(parsed, shell);
+    }
 
     let candidates = suggestCmd(name, allCommands);
     if (candidates?.length) {
