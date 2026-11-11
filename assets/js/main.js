@@ -1,6 +1,6 @@
 import { attachShellEvents, initGlobalEvents, initTerminalHotkeys } from "./core/events.js";
 import { getHtmlTerminal } from "./partials/terminal.js";
-import { DEFAULT_PROMPT, DEFAULT_OS_HEADER, DEFAULT_INIT_MSG, GAME_PROMPT, KIND_GAME, KIND_OS } from "./ui/outputs.js";
+import { DEFAULT_PROMPT, DEFAULT_OS_HEADER, DEFAULT_INIT_MSG, KIND_OS } from "./ui/outputs.js";
 import { makeColResizer } from "./core/resizers.js";
 import { setOnNew, setOnExit } from "./commands/kernel.js";
 import { restoreTheme } from "./commands/theme.js";
@@ -10,7 +10,7 @@ const desktop = document.getElementById('desktop');
 const shells = [];
 let activeShell = null;
 
-export function getActiveShell() { return activeShell ?? shells[0]; }
+function getActiveShell() { return activeShell ?? shells[0]; }
 function setActive(shell) {
     activeShell = shell;
     document.querySelectorAll('.terminal.focused')
@@ -72,8 +72,9 @@ export function spawnTerminal(opts = {}) {
 
     const existing = shells.find(s => s.kind === kind);
     if (existing) {
-        existing.print(`<span style='color:red;'>[!] Já tens um terminal "${kind}" aberto.</span>`);
-        existing.focus();
+        const os = shells.find(s => s.kind === KIND_OS);
+        os.print(`<span style='color:red;'>[!] Já tens um terminal "${kind}" aberto.</span>`);
+        os.focus();
         setActive(existing);
         return existing;
     }
@@ -110,7 +111,7 @@ export function spawnTerminal(opts = {}) {
         });
     }
 
-    const shell = new Shell(wrapper.querySelector('.terminal'), prompt);
+    const shell = new Shell(wrapper.querySelector('.terminal'), prompt, kind);
     shell.ttyId = ttyId;
     shell.kind = kind;
     shell.host = host;
