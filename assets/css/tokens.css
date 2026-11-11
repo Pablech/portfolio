@@ -1,25 +1,25 @@
 :root {
     --bg-color: #050505;
     --tty-color: #ffffff;
-    --panel-bg: #121212;
+    --panel-bg: #050505;
 }
 
 body.theme-matrix {
     --bg-color: #050505;
     --tty-color: #00ff00;
-    --panel-bg: #0a0a0a;
+    --panel-bg: #050505;
 }
 
 body.theme-white {
     --bg-color: #ffffff;
     --tty-color: #000000;
-    --panel-bg: #f8f9fa;
+    --panel-bg: #ffffff;
 }
 
 body.theme-tty {
     --bg-color: #050505;
     --tty-color: #ffffff;
-    --panel-bg: #121212;
+    --panel-bg: #050505;
     text-shadow: 0 0 5px rgba(0, 255, 0, 0.3);
 }
 

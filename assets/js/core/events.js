@@ -93,7 +93,7 @@ export function attachShellEvents(shell, { setActive }) {
             const [firstWord] = value.split(/\s+/);
             if (!firstWord) return;
 
-            const names = getCommandNames().filter(c => c.startsWith(firstWord));
+            const names = getCommandNames(shell).filter(c => c.startsWith(firstWord));
             if (names.length === 1) {
                 const rest = value.slice(firstWord.length);
                 shell.input.value = names[0] + ' ' + rest.trimStart();
