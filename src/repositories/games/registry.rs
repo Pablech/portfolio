@@ -15,7 +15,7 @@ pub fn build_agents(p1_name: String, p1_fig: char, vs_cpu: bool) -> Vec<Agent> {
     };
 
     let p2 = if vs_cpu {
-        let cpu = Cpu::new(vec![p1_fig]);        // sorteia JÁ excluindo a tua figura
+        let cpu = Cpu::new(vec![p1_fig]); 
         Agent { kind: AgentKind::Cpu, name: cpu.name, fig: cpu.fig, token: None }
     } else {
         Agent { kind: AgentKind::Human, name: "p2".into(), fig: '&'.into(), token: None }
