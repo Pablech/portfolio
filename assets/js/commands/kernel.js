@@ -2,10 +2,10 @@ import { handleWizardInput } from "./email.js";
 import { handlePaginationInput } from "./github.js";
 import { KIND_GAME, KIND_OS } from "../ui/outputs.js";
 import { cmdError } from "../ui/outputs.js";
-import { suggestCmd } from "../core/utils.js";
-import { defaultRegistry } from "./registries/default.js";
-import { siteRegistry } from "./registries/site.js";
-import { gamesRegistry } from "./registries/games.js";
+import { suggestCmd, generateReqId } from "../core/utils.js";
+import { defaultRegistry } from "./libs/default.js";
+import { siteRegistry } from "./libs/site.js";
+import { gamesRegistry } from "./libs/games.js";
 import { cmdParser } from "../core/parser.js";
 
 const registriesByKind = { 
@@ -24,6 +24,8 @@ export function getCommandNames(shell) {
     return Object.keys(reg); 
 }
 
+function print(shell, value) { shell.print(`<span class="prompt">${shell.prompt}</span>${value}`); }
+
 export async function routeCommand(value, shell) {
     const registry = registriesByKind[shell.kind] || registriesByKind[KIND_OS];
     const allCommands = Object.keys(registry);
@@ -31,9 +33,8 @@ export async function routeCommand(value, shell) {
 
     if (s.isPaginating)   { handlePaginationInput(value, shell); return; }
     if (s.wizardStep !== null) { handleWizardInput(value, shell); return; }
-
     
-    shell.print(`<span class="prompt">${shell.prompt}</span>${value}`);
+    print(shell, value);
     if (!value) return;
     
     const name = value.split(/\s+/)[0];
@@ -43,6 +44,21 @@ export async function routeCommand(value, shell) {
         const parsed = cmdParser(shell, value, allCommands);
         if (!parsed) return;
         return handler(parsed, shell);
+    } else if (s.inGame) {
+        print(shell, value);
+        if (!value) return;
+
+        if (shell.state.activeWs && shell.state.activeWs.readyState === WebSocket.OPEN) {
+            shell.state.activeWs.send(JSON.stringify({
+                action: "play",
+                data: {
+                    token: shell.state.gameToken,
+                    input: value.trim(),
+                    req_id: generateReqId(),
+                }
+            }));
+        }
+        return;
     }
 
     let candidates = suggestCmd(name, allCommands);

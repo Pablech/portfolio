@@ -1,14 +1,13 @@
-// import { GAME_PROMPT, DEFAULT_GAME_HEADER, DEFAULT_GAME_MSG, KIND_GAME } from "../../ui/outputs.js";
+import { GAME_PROMPT, DEFAULT_GAME_HEADER, DEFAULT_GAME_MSG, KIND_GAME } from "../../ui/outputs.js";
 import { startWizard } from "../email.js";
 import { fetchAndPrint } from "../../ui/fetchAndPrint.js";
-import { fetchAbout, fetchGitHub, fetchHelp } from "../../api/api.js";
+import { fetchAbout, fetchGitHub } from "../../api/api.js";
 import { startGitHubPagination } from "../github.js";
-// import { onNew } from "../kernel.js";
+import { onNew } from "../kernel.js";
 
 export const siteRegistry = {};
 
 siteRegistry['email'] = (_value, shell) => startWizard(shell);
-siteRegistry['help'] = (_value, shell) => fetchAndPrint(shell, fetchHelp);
 siteRegistry['about'] = (_value, shell) => fetchAndPrint(shell, fetchAbout);
 
 siteRegistry['github'] = async (_value, shell) => {
@@ -40,9 +39,9 @@ siteRegistry['resume'] = (_value, shell) => {
     a.click();
 };
 
-// siteRegistry['games'] = () => onNew?.({
-//     prompt: GAME_PROMPT,
-//     header: DEFAULT_GAME_HEADER,
-//     welcome: DEFAULT_GAME_MSG,
-//     kind: KIND_GAME,
-// });
+siteRegistry['games'] = () => onNew?.({
+    prompt: GAME_PROMPT,
+    header: DEFAULT_GAME_HEADER,
+    welcome: DEFAULT_GAME_MSG,
+    kind: KIND_GAME,
+});

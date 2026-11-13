@@ -32,7 +32,6 @@ pub struct Agent {
 pub struct CreatedRoom {
     pub room_id: String,
     pub host_token: String,
-    pub guest_token: Option<String>,
 }
 
 pub struct GameHub {

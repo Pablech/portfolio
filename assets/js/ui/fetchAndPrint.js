@@ -1,18 +1,32 @@
-export async function fetchAndPrint(shell, fn) {
-    shell.setPrompt("Carregando... [AGUARDE]");
+// assets/js/ui.js
+export async function fetchAndPrint(shell, fn, {
+        loading = "Carregando... [AGUARDE]",
+        onSuccess,
+        onError,
+    } = {}) {
+
+    const lastPrompt = shell.prompt;
+
+    shell.setPrompt(loading);
     shell.input.disabled = true;
-    shell.setPrompt("A CARREGAR...");
 
     try {
         const { ok, status, data } = await fn();
-        if (!ok) {
-            shell.print(`<span style='color:red;'>[Erro] Servidor respondeu ${status}.</span>`);
-            return;
+
+        if (ok) {
+            if (data?.output) shell.print(data.output);
+            await onSuccess?.(data);
+        } else {
+            const custom = onError?.(status, data);
+            shell.print(custom ??
+                `<span style='color:red;'>[Erro] Servidor respondeu ${status}.</span>`);
         }
-        if (data?.output) shell.print(data.output);
+
+        return { ok, status, data };
+
     } finally {
         shell.input.disabled = false;
-        shell.setPrompt(shell.prompt);
-        shell.focus();
+        shell.setPrompt(lastPrompt);
+        shell.focus(true);
     }
 }
