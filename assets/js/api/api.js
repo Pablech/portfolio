@@ -16,8 +16,10 @@ function jsonBody(body) {
     };
 }
 
-export const fetchHelp   = ()  => request('/api/help');
+export const fetchHelp   = (kind)  => request(`/api/help/${kind}`);
 export const fetchGitHub = ()  => request('/api/github');
 export const fetchAbout  = ()  => request('/api/about');
 export const fetchKeys = () => request('/api/keys');
 export const sendEmail   = (wizardData) => request('/api/send-email', jsonBody(wizardData));
+export const fetchCreateGame = (body) => request('/games/rooms', jsonBody(body));
+export const fetchJoinGame = (room, body) => request(`/games/rooms/${room}/join`, jsonBody(body));

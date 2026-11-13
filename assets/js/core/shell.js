@@ -17,6 +17,12 @@ export class Shell {
             isPaginating: false,
             ghPage: 0,
             wizardStep: null,
+            inGame: false,
+            activeWs: null,
+            gameToken: null,
+            lastReqId: null,
+            boardsPrinted: 0,
+            myName: null,
         };
 
         this.wizardData = { from: '', subject: '', body: '' };

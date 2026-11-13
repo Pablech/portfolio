@@ -1,7 +1,7 @@
-use crate::repositories::games::domain::{
+use crate::{handlers::structs::ClaimedSeat, repositories::games::domain::{
     enums::{GameError, GameState, PlayResult}, 
     structs::Agent
-};
+}};
 
 pub trait GameLogic: Send + Sync + 'static {
     fn new() -> Self where Self: Sized;
@@ -21,4 +21,8 @@ pub trait RoomHandle: Send + Sync {
     async fn join(&self, token: &str, req_id: Option<&str>) -> Result<GameState, GameError>;
     async fn play(&self, token: &str, input: &str, req_id: Option<&str>) -> Result<PlayResult, GameError>;
     async fn rematch(&self, token: &str, accept: bool, req_id: Option<&str>) -> Result<PlayResult, GameError>;
+    async fn claim(&self, name: Option<String>, fig: Option<char>) -> Result<ClaimedSeat, GameError>;
+    async fn snapshot(&self) -> GameState;
+    async fn rematch_cycle(&self) -> u64;
+    async fn timeout_rematch(&self, cycle: u64) -> Option<GameState>;
 }

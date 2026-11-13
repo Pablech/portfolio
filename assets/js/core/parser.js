@@ -54,5 +54,5 @@ export function cmdParser(shell, input, cmds) {
         }
     }
 
-    return { cmd, flags: rawFlags };
+    return { cmd, flags: rawFlags, args: tokens.slice(1) };
 }

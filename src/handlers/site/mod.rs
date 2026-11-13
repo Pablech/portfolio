@@ -14,4 +14,4 @@ pub use keys::keys;
 pub use resume::resume;
 pub use email::send_email;
 pub use github::github;
-pub use game::create_room;
+pub use game::*;

@@ -41,7 +41,7 @@ pub fn create_router(gh: Arc<GitHub>, env: Arc<EnvSetting>, games: Arc<GameHub>)
     let game_conf = create_rate_limit(1, 3);
 
     let api_router = Router::new()
-        .route("/help", get(site::help))
+        .route("/help/:kind", get(site::help))
         .route("/about", get(site::about))
         .route("/keys", get(site::keys))
         .route("/resume", get(site::resume))
@@ -58,6 +58,7 @@ pub fn create_router(gh: Arc<GitHub>, env: Arc<EnvSetting>, games: Arc<GameHub>)
     let games_router = Router::new()
         .route("/games/rooms", post(site::create_room))
             .layer(GovernorLayer { config: game_conf })
+        .route("/games/rooms/:room_id/join", post(site::join_room))
         .route("/games/ws/:room_id", get(ws_handler));
 
     Router::new()

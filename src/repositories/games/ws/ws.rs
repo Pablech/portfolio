@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 use askama_axum::IntoResponse;
 use axum::{
     extract::{ws::{Message, WebSocket, WebSocketUpgrade}, Path, Query, State},
@@ -10,13 +10,19 @@ use tokio::sync::{broadcast, mpsc};
 
 use crate::{
     repositories::games::{
-        ClientMsg, Flow, Frame, GameError, GameHub, GameState, LiveRoom, PlayResult, ServerMsg, Session, WsParams
+        ClientMsg, Flow, Frame, GameError, GameHub, GameState, LiveRoom, MoveOutcome, PlayResult, ServerMsg, Session, WsParams
     }, state::AppState
 };
 
 fn ser(msg: &ServerMsg) -> String { serde_json::to_string(msg).expect("ServerMsg sempre serializa") }
 fn ser_state(st: &GameState) -> String { serde_json::to_string(st).expect("GameState sempre serializa") }
-fn err_text(e: &GameError) -> String { format!("{:?}", e) }
+fn err_text(e: &GameError) -> String {
+    match e {
+        GameError::ErrorMove(m)
+        | GameError::ErrorJoin(m)
+        | GameError::ErrorValidation(m) => m.clone(),
+    }
+}
 fn de<T: serde::de::DeserializeOwned>(txt: &str) -> Option<T> { serde_json::from_str(txt).ok() }
 
 pub async fn handler(State(state): State<AppState>,
@@ -108,8 +114,8 @@ impl Session {
     async fn on_play(&self, token: &str, input: &str, req_id: Option<String>, skip_echo: &mut Option<String>,) -> Flow {
         match self.room.play(token, input, req_id.as_deref()).await {
             Ok(PlayResult::Fresh(st)) => {
-                self.broadcast(&st).await;
                 *skip_echo = Some(ser_state(&st));
+                self.broadcast(&st).await;
                 self.push_state(st, req_id).await;
             }
             Ok(PlayResult::Replayed(st)) => {
@@ -126,8 +132,23 @@ impl Session {
     async fn on_rematch(&self, token: &str, accept: bool, req_id: Option<String>, skip_echo: &mut Option<String>) -> Flow {
         match self.room.rematch(token, accept, req_id.as_deref()).await {
             Ok(PlayResult::Fresh(st)) => {
-                self.broadcast(&st).await;
+                if matches!(st, GameState::State(MoveOutcome::RematchPending { .. })) {
+                    let room = self.room.clone();
+                    let tx = self.tx.clone();
+                    let hub = self.hub.clone();
+                    let room_id = self.room_id.clone();
+                    let cycle = room.rematch_cycle().await;
+
+                    tokio::spawn(async move {
+                        tokio::time::sleep(Duration::from_secs(60)).await;
+                        if let Some(declined_state) = room.timeout_rematch(cycle).await {
+                            let _ = tx.send(declined_state);
+                            hub.remove_room(&room_id);
+                        }
+                    });
+                }
                 *skip_echo = Some(ser_state(&st));
+                self.broadcast(&st).await;
                 self.push_state(st, req_id).await;
             }
             Ok(PlayResult::Replayed(st)) => {
@@ -152,6 +173,8 @@ impl Session {
         if let Some(ref tok) = token {
             if let Ok(GameState::JoinInfo { joined, .. }) = live.handle.join(tok, None).await {
                 let _ = sink.send(Message::Text(ser(&ServerMsg::Joined { name: joined, room_id: room_id.clone(), }))).await;
+                let st = live.handle.snapshot().await;
+                let _ = live.tx.send(st);
             }
         }
 

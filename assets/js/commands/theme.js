@@ -12,9 +12,14 @@ export function restoreTheme() {
     if (saved && THEMES[saved]) document.body.className = `theme-${saved}`;
 }
 
-export function themeCommand(value, shell) {
-    const name = value.split(' ')[1];
-    if (!applyTheme(name)) {
+export function themeCommand(parsed, shell) {
+    const themeName = parsed.args[0];
+    if (!themeName) {
+        shell.print('[Erro] Uso: theme NAME, help para ajuda');
+        return;
+    }
+
+    if (!applyTheme(themeName)) {
         shell.print(`<span style='color:red;'>Tema desconhecido. Utiliza: ${Object.keys(THEMES).join(', ')}</span>`);
     }
 }
