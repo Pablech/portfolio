@@ -24,8 +24,6 @@ export function getCommandNames(shell) {
     return Object.keys(reg); 
 }
 
-function print(shell, value) { shell.print(`<span class="prompt">${shell.prompt}</span>${value}`); }
-
 export async function routeCommand(value, shell) {
     const registry = registriesByKind[shell.kind] || registriesByKind[KIND_OS];
     const allCommands = Object.keys(registry);
@@ -34,18 +32,20 @@ export async function routeCommand(value, shell) {
     if (s.isPaginating)   { handlePaginationInput(value, shell); return; }
     if (s.wizardStep !== null) { handleWizardInput(value, shell); return; }
     
-    print(shell, value);
     if (!value) return;
     
     const name = value.split(/\s+/)[0];
     const handler = registry[name];
+
+    if (!shell.state.inGame || allCommands.includes(name)) {
+        shell.print(`<span class="prompt">${shell.prompt}</span>${value}`);
+    };
 
     if (handler) {
         const parsed = cmdParser(shell, value, allCommands);
         if (!parsed) return;
         return handler(parsed, shell);
     } else if (s.inGame) {
-        print(shell, value);
         if (!value) return;
 
         if (shell.state.activeWs && shell.state.activeWs.readyState === WebSocket.OPEN) {
