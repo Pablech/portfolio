@@ -5,7 +5,7 @@ const HELP_DEFAULT: &str = include_str!("../../../static/help/default.txt");
 const HELP_SITE: &str    = include_str!("../../../static/help/site.txt");
 const HELP_GAME: &str    = include_str!("../../../static/help/game.txt");
 
-// GET /api/help/:kind  →  default + kind
+// router = GET /api/help/:kind  →  default + kind
 pub async fn help(Path(kind): Path<String>) -> Response {
     let extra = match kind.as_str() {
         "os" => HELP_SITE,

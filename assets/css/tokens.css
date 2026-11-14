@@ -20,7 +20,6 @@ body.theme-tty {
     --bg-color: #050505;
     --tty-color: #ffffff;
     --panel-bg: #050505;
-    text-shadow: 0 0 5px rgba(0, 255, 0, 0.3);
 }
 
 body.theme-pink {
