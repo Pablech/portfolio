@@ -179,14 +179,17 @@ mod tests {
 
     #[test]
     fn build_agents_monta_o_que_se_espera() {
-        let vs_cpu = build_agents("a".into(), 'X', true);
-        assert_eq!(vs_cpu.len(), 2);
-        assert!(vs_cpu[0].token.is_some());
-        assert!(vs_cpu[1].token.is_none(), "CPU não porta token");
-        assert_eq!(vs_cpu[1].name, "Cpu.ai");
 
-        let pvp = build_agents("a".into(), 'X', false);
-        assert!(pvp.iter().all(|a| a.token.is_some()), "pvp: ambos com token");
+        let agents = build_agents("alice".into(), 'X', true);
+        assert_eq!(agents.len(), 2);
+        assert!(matches!(agents[0].kind, AgentKind::Human));
+        assert!(agents[0].token.is_some(), "host sempre tem token");
+        assert!(matches!(agents[1].kind, AgentKind::Cpu));
+        assert!(agents[1].token.is_none(), "CPU não tem token (nunca teve)");
+
+        let agents = build_agents("bob".into(), 'O', false);
+        assert!(matches!(agents[1].kind, AgentKind::Human));
+        assert!(agents[1].token.is_none(), "p2 nasce SEM token: assento vem do claim");
     }
 
     #[tokio::test]

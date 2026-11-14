@@ -1,18 +1,19 @@
 use std::sync::Arc;
-use axum::{extract::State, http::StatusCode, Json};
+use axum::{Json, extract::{Path, State}, http::StatusCode};
 
-use crate::{handlers::structs::{CreateRoomReq, CreateRoomResp}, repositories::games::{
-    CreatedRoom, GameHub, GameKind,
+use crate::{handlers::structs::{CreateRoomReq, CreateRoomResp, JoinRoomReq, JoinRoomResp}, 
+repositories::games::{
+    CreatedRoom, GameError, GameHub, GameKind,
 }};
 
-// route = POST /api/games/rooms
+// route = POST /games/rooms
 pub async fn create_room(State(hub): State<Arc<GameHub>>,
     Json(req): Json<CreateRoomReq>, ) -> Result<Json<CreateRoomResp>, (StatusCode, String)> {
 
     let kind = GameKind::from_str(&req.game)
         .map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
 
-    let CreatedRoom { room_id, host_token, guest_token } = kind
+    let CreatedRoom { room_id, host_token } = kind
         .create(
             &hub,
             req.name.unwrap_or_else(|| "p1".into()),
@@ -24,6 +25,26 @@ pub async fn create_room(State(hub): State<Arc<GameHub>>,
     Ok(Json(CreateRoomResp {
         room_id,
         token: host_token,
-        guest_token,
     }))
+}
+
+// route = POST /games/rooms/:room_id/join
+pub async fn join_room(State(hub): State<Arc<GameHub>>,
+    Path(room_id): Path<String>, Json(req): Json<JoinRoomReq>,
+    ) -> Result<Json<JoinRoomResp>, (StatusCode, String)> {
+
+    let room = hub.get_room(&room_id)
+        .ok_or_else(|| (StatusCode::NOT_FOUND, "sala inexistente".into()))?;
+
+    let seat = room.claim(req.name, req.fig).await
+        .map_err(|e| {
+            let status = match &e {
+                GameError::ErrorJoin(_) => StatusCode::CONFLICT,
+                GameError::ErrorValidation(_) => StatusCode::BAD_REQUEST,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            };
+            (status, format!("{:.?}", e))
+        })?;
+    
+    Ok(Json(JoinRoomResp { token: seat.token, joined: seat.joined, room_id: seat.room_id }))
 }

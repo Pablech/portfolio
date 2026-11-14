@@ -72,3 +72,7 @@ export function commonPrefix(strings) {
         return acc.slice(0, i);
     })
 }
+
+export function generateReqId() {
+    return crypto.randomUUID();
+}

@@ -1,7 +1,10 @@
+import { KIND_OS } from "../ui/outputs.js";
+
 export class Shell {
-    constructor(root, prompt) {
+    constructor(root, prompt, kind = KIND_OS) {
         this.root = root;
         this.prompt = prompt;
+        this.kind = kind;
         this.input = root.querySelector('.cmd-input');
         this.typed = root.querySelector('.typed-text');
         this.output = root.querySelector('.output');
@@ -14,6 +17,12 @@ export class Shell {
             isPaginating: false,
             ghPage: 0,
             wizardStep: null,
+            inGame: false,
+            activeWs: null,
+            gameToken: null,
+            lastReqId: null,
+            boardsPrinted: 0,
+            myName: null,
         };
 
         this.wizardData = { from: '', subject: '', body: '' };

@@ -3,8 +3,7 @@ use std::sync::Arc;
 use anyhow::{Error, anyhow};
 
 use crate::repositories::games::{
-    Agent, AgentKind, CpuBrain, CreatedRoom, GameHub, GameKind, 
-    connect4::{Conn4Table, SmartishBrain}, generate_token, 
+    Agent, AgentKind, Cpu, CpuBrain, CreatedRoom, GameHub, GameKind, connect4::{Conn4Table, SmartishBrain}, generate_token, 
 };
 
 pub fn build_agents(p1_name: String, p1_fig: char, vs_cpu: bool) -> Vec<Agent> {
@@ -14,11 +13,14 @@ pub fn build_agents(p1_name: String, p1_fig: char, vs_cpu: bool) -> Vec<Agent> {
         fig: p1_fig,
         token: Some(generate_token()),
     };
+
     let p2 = if vs_cpu {
-        Agent { kind: AgentKind::Cpu, name: "Cpu.ai".into(), fig: '@'.into(), token: None }
+        let cpu = Cpu::new(vec![p1_fig]); 
+        Agent { kind: AgentKind::Cpu, name: cpu.name, fig: cpu.fig, token: None }
     } else {
-        Agent { kind: AgentKind::Human, name: "p2".into(), fig: '&'.into(), token: Some(generate_token()) }
+        Agent { kind: AgentKind::Human, name: "p2".into(), fig: '&'.into(), token: None }
     };
+
     vec![p1, p2]
 }
 
@@ -37,9 +39,6 @@ impl GameKind {
 
         let host_token = agents[0].token.clone()
             .ok_or_else(|| anyhow!("host sem token"))?;
-        let guest_token = if vs_cpu { None } else {
-            agents[1].token.clone()
-        };
 
         match self {
             Self::Connect4 => {
@@ -49,7 +48,7 @@ impl GameKind {
                     vec![None, None]
                 };
                 let (room_id, _) = hub.create_room(agents, brains)?;
-                Ok(CreatedRoom { room_id, host_token, guest_token })
+                Ok(CreatedRoom { room_id, host_token })
             }
         }
     }

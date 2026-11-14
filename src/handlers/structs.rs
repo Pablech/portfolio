@@ -2,6 +2,13 @@ use serde::{Deserialize, Serialize};
 use askama::Template;
 
 
+#[derive(Serialize, Clone)]
+pub struct LinkItem {
+    pub label: &'static str,
+    pub mask: &'static str,
+    pub url: &'static str,
+}
+
 #[derive(Serialize)]
 pub struct BasicRes {
     pub output: String,
@@ -46,11 +53,29 @@ pub struct CreateRoomReq {
     pub req_id: Option<String>,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct JoinRoomReq {
+    pub name: Option<String>,
+    pub fig: Option<char>,
+}
+
+#[derive(Serialize)]
+pub struct JoinRoomResp {
+    pub token: String,
+    pub joined: String,
+    pub room_id: String,
+}
+
 #[derive(Serialize)]
 pub struct CreateRoomResp {
     pub room_id: String,
     pub token: String,
-    pub guest_token: Option<String>,
+}
+
+pub struct ClaimedSeat {
+    pub token: String,
+    pub joined: String,
+    pub room_id: String,
 }
 
 impl TerminalRenderable for Project {

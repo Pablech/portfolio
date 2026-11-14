@@ -41,10 +41,11 @@ pub fn create_router(gh: Arc<GitHub>, env: Arc<EnvSetting>, games: Arc<GameHub>)
     let game_conf = create_rate_limit(1, 3);
 
     let api_router = Router::new()
-        .route("/help", get(site::help))
+        .route("/help/:kind", get(site::help))
         .route("/about", get(site::about))
         .route("/keys", get(site::keys))
         .route("/resume", get(site::resume))
+        .route("/links", get(site::links))
         .route("/send-email", post(site::send_email).layer(GovernorLayer { config: email_conf }))
         .route("/github", get(site::github).layer(GovernorLayer { config: gh_conf }));
 
@@ -58,6 +59,7 @@ pub fn create_router(gh: Arc<GitHub>, env: Arc<EnvSetting>, games: Arc<GameHub>)
     let games_router = Router::new()
         .route("/games/rooms", post(site::create_room))
             .layer(GovernorLayer { config: game_conf })
+        .route("/games/rooms/:room_id/join", post(site::join_room))
         .route("/games/ws/:room_id", get(ws_handler));
 
     Router::new()
@@ -65,7 +67,6 @@ pub fn create_router(gh: Arc<GitHub>, env: Arc<EnvSetting>, games: Arc<GameHub>)
         .merge(bot_router)
         .merge(games_router)
         .nest("/api", api_router)
-        // .nest("/game/ws", game_conn_4_router)
         .layer(middleware::from_fn(security_header))
         .layer(middleware::from_fn(request_logger))
         .layer(middleware::from_fn(log_rate_limit))

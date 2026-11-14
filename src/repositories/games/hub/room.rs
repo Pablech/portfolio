@@ -4,12 +4,11 @@ use lru::LruCache;
 use tokio::sync::{Mutex, broadcast};
 use anyhow::{Error, anyhow};
 
-use crate::repositories::games::{
-    AgentKind, GameHub, LiveRoom, MoveOutcome, 
-    domain::{enums::{GameError, GameState, PlayResult}, 
+use crate::{handlers::structs::ClaimedSeat, repositories::games::{
+    AgentKind, GameHub, LiveRoom, MoveOutcome, domain::{enums::{GameError, GameState, PlayResult}, 
     structs::{Agent, GameRoom}, 
     traits::{CpuBrain, GameLogic, RoomHandle}}, generate_token,
-};
+}};
 
 impl GameHub {
     pub fn new(rgs: u64, ots: u64) -> Self {
@@ -60,7 +59,7 @@ impl GameHub {
                 room_id: room_id.clone(), 
                 game: L::new(), 
                 agents, 
-                turn: 0, 
+                turn: 0, //dice(n_agents), 
                 finished: false, 
                 brains, 
                 request_cache: LruCache::new(NonZeroUsize::new(30).unwrap()),
@@ -142,7 +141,7 @@ impl<L: GameLogic> GameRoom<L> {
     fn reset(&mut self) -> MoveOutcome {
         self.game = L::new();
         self.finished = false;
-        self.turn = self.round % self.agents.len();
+        self.turn = 0; // dice(self.agents.len());
         self.round += 1;
         self.rematch_votes.iter_mut().for_each(|v| *v = false);
         self.request_cache.clear();
@@ -190,7 +189,7 @@ impl <L: GameLogic> RoomHandle for Mutex<GameRoom<L>> {
         }
 
         if room.finished {
-            return Err(GameError::ErrorMove("partida encerrada".into()));
+            return Err(GameError::ErrorMove("partida encerrada - rematch para jogar de novo".into()));
         }
 
         let agent_indx = room.agents.iter().position(|a| a.token.as_deref() == Some(token))
@@ -252,9 +251,11 @@ impl <L: GameLogic> RoomHandle for Mutex<GameRoom<L>> {
             if all_in {
                 (GameState::State(room.reset()), false)
             } else {
-                (GameState::State(MoveOutcome::RematchPending {
-                    who: room.agents[idx].name.clone(),
-                }), false)
+                let who = room.agents.iter().zip(room.rematch_votes.iter())
+                    .find(|(a, voted)| matches!(a.kind, AgentKind::Human) && !*voted)
+                    .map(|(a, _)| a.name.clone())
+                    .expect("ramo pending implica humano sem voto");
+                (GameState::State(MoveOutcome::RematchPending { who, }), false)
             }
         };
 
@@ -267,5 +268,60 @@ impl <L: GameLogic> RoomHandle for Mutex<GameRoom<L>> {
         } else {
             PlayResult::Fresh(state)
         })
+    }
+
+    async fn claim(&self, name: Option<String>, fig: Option<char>) -> Result<ClaimedSeat, GameError> {
+        let mut room = self.lock().await;
+
+        let indx = room.agents.iter().position(|a| matches!(a.kind, AgentKind::Human) && a.token.is_none())
+            .ok_or_else(|| GameError::ErrorJoin("Sala cheia".into()))?;
+
+        if let Some(f) = fig {
+            if room.agents.iter().enumerate().any(|(i, a)| i != indx && a.fig == f) {
+                return Err(GameError::ErrorValidation(format!("Figura {} em uso", f)));
+            }
+        }
+
+        let token = generate_token();
+        {
+            let agent = &mut room.agents[indx];
+            agent.token = Some(token.clone());
+            if let Some(n) = name { agent.name = n; }
+            if let Some(f) = fig { agent.fig = f; }
+        }
+
+        let agent = &room.agents[indx];
+        Ok(ClaimedSeat {
+            token,
+            joined: agent.name.clone(),
+            room_id: room.room_id.clone(),
+        })
+    }
+
+    async fn snapshot(&self) -> GameState {
+        let room = self.lock().await;
+        GameState::State(MoveOutcome::Continue {
+            output: room.game.output(&room.agents),
+            next_player: room.agents[room.turn].name.clone(),
+        })
+    }
+
+    async fn rematch_cycle(&self) -> u64 {
+        let room = self.lock().await;
+        room.round as u64
+    }
+
+    async fn timeout_rematch(&self, cycle: u64) -> Option<GameState> {
+        let room = self.lock().await;
+
+        if room.round as u64 != cycle { return None; }
+        if !room.finished || !room.rematch_votes.iter().any(|&v| v) { return None; }
+
+        let missing_player = room.agents.iter().zip(room.rematch_votes.iter())
+            .find(|(a, voted)| matches!(a.kind, AgentKind::Human) && !**voted)
+            .map(|(a, _)| a.name.clone())
+            .unwrap_or_else(|| "Tempo esgotado para rematch".into());
+
+        Some(GameState::State(MoveOutcome::RematchDeclined { by: missing_player, }))
     }
 }

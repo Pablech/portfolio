@@ -1,21 +1,17 @@
-use std::sync::LazyLock;
-use axum::{http::header, Json};
+use askama_axum::IntoResponse;
+use axum::{extract::Path, http::StatusCode, response::Response};
 
-use crate::handlers::{
-    structs::{BasicRes, SectionContent},
-    formatters::format_section,
-};
+const HELP_DEFAULT: &str = include_str!("../../../static/help/default.txt");
+const HELP_SITE: &str    = include_str!("../../../static/help/site.txt");
+const HELP_GAME: &str    = include_str!("../../../static/help/game.txt");
 
-const HELP: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/static/help.txt"));
-
-static HELP_OUTPUT: LazyLock<String> = LazyLock::new(|| {
-    format_section(&[
-        SectionContent {
-            title: "Comandos disponíveis", content: HELP
-        }
-    ])
-});
-
-pub async fn help() -> ([(header::HeaderName, &'static str); 1], Json<BasicRes>) {
-    ([(header::CACHE_CONTROL, "no-store")], Json(BasicRes { output: HELP_OUTPUT.clone() }))
+// router = GET /api/help/:kind  →  default + kind
+pub async fn help(Path(kind): Path<String>) -> Response {
+    let extra = match kind.as_str() {
+        "os" => HELP_SITE,
+        "games" => HELP_GAME,
+        _ => return StatusCode::NOT_FOUND.into_response(),
+    };
+    let text = format!("{}\n{}",extra.trim(), HELP_DEFAULT.trim_end());
+    axum::Json(serde_json::json!({ "output": text })).into_response()
 }
