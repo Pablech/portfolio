@@ -28,7 +28,6 @@ function requireGame(shell) {
         shell.print('Ligação fechada, reconecta com join.');
         return null;
     }
-    shell.print(`A sair da partida...`);
     return { ws: activeWs, token: gameToken };
 }
 

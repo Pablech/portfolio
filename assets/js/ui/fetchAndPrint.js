@@ -1,4 +1,3 @@
-// assets/js/ui.js
 export async function fetchAndPrint(shell, fn, {
         loading = "Carregando... [AGUARDE]",
         onSuccess,
