@@ -117,7 +117,9 @@ export function attachShellEvents(shell, { setActive }) {
         const value = shell.input.value.trim();
         shell.input.value = '';
 
-        if (value && value !== shell.history[shell.history.length - 1]) {
+        const first = value.split(/\s+/)[0];
+
+        if (getCommandNames(shell).includes(first) && value !== shell.history[shell.history.length - 1]) {
             shell.history.push(value);
         }
         shell.historyIndex = null;

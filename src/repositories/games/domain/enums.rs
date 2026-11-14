@@ -20,7 +20,7 @@ pub enum GameError {
 #[derive(Debug, Serialize, Clone)]
 #[serde(untagged)]
 pub enum GameState {
-    JoinInfo { joined: String, room_id: String },
+    JoinInfo { joined: String, room_id: String, chat: bool },
     State(MoveOutcome),
     Error(GameError),
 }
@@ -31,14 +31,16 @@ pub enum ClientMsg {
     Join { token: String, req_id: Option<String> },
     Play { token: String, input: String, req_id: Option<String> },
     Rematch { token: String, accept: bool, req_id: Option<String>},
+    Chat { token: String, text: String },
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 #[serde(tag = "status", rename_all = "snake_case")]
 pub enum ServerMsg {
-    Joined { name: String, room_id: String },
+    Joined { name: String, room_id: String, chat: bool },
     Error { message: String, fatal: bool },
     State { state: GameState, req_id: Option<String> },
+    Chat { author: String, text: String },
 }
 
 #[derive(Debug, Clone)]

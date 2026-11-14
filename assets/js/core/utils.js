@@ -76,3 +76,9 @@ export function commonPrefix(strings) {
 export function generateReqId() {
     return crypto.randomUUID();
 }
+
+export function time() {
+    const d = new Date();
+    const p = (n) => String(n).padStart(2, '0');
+    return `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+}

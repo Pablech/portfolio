@@ -5,6 +5,7 @@ import { makeColResizer } from "./core/resizers.js";
 import { setOnNew, setOnExit } from "./commands/kernel.js";
 import { restoreTheme } from "./commands/theme.js";
 import { Shell } from "./core/shell.js";
+import { mountChat } from "./core/chat.js";
 
 const desktop = document.getElementById('desktop');
 const shells = [];
@@ -116,6 +117,7 @@ export function spawnTerminal(opts = {}) {
     shell.kind = kind;
     shell.host = host;
     attachShellEvents(shell, { setActive });
+    mountChat(shell);
     shells.push(shell);
 
     shell.print(`${header} (tty${ttyId})`);

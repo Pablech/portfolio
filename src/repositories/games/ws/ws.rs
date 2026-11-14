@@ -60,7 +60,7 @@ impl Session {
     }
 
     async fn broadcast(&self, state: &GameState) {
-        let _ = self.tx.send(state.clone());
+        let _ = self.tx.send(ServerMsg::State { state: state.clone(), req_id: None });
     }
 
     async fn on_frame(&self, msg: Option<Result<Message, axum::Error>>) -> Frame {
@@ -79,12 +79,17 @@ impl Session {
         }
     }
 
-    async fn on_broadcast(&self, gs: GameState, skip_echo: &mut Option<String>) {
-        let state_json = ser_state(&gs);
-        if skip_echo.as_deref() == Some(state_json.as_str()) {
-            *skip_echo = None;
-        } else {
-            self.push_state(gs, None).await;
+    async fn on_broadcast(&self, msg: ServerMsg, skip_echo: &mut Option<String>) {
+        match msg {
+            ServerMsg::State { state, .. } => {
+                let state_json = ser_state(&state);
+                if skip_echo.as_deref() == Some(state_json.as_str()) {
+                    *skip_echo = None;
+                } else {
+                    self.push_state(state, None).await;
+                }
+            }
+            other => { self.send(ser(&other)).await; }
         }
     }
 
@@ -97,13 +102,23 @@ impl Session {
             ClientMsg::Rematch { token, accept, req_id } => {
                 self.on_rematch(&token, accept, req_id, skip_echo).await
             }
+            ClientMsg::Chat { token, text, ..} => {
+                match self.room.chat(&token, &text).await {
+                    Ok(author) if !author.is_empty() => {
+                        { let _ = self.tx.send(ServerMsg::Chat { author, text: text.trim().to_owned() }); }
+                    }
+                    Ok(_) => {}
+                    Err(e) => self.push_error(err_text(&e), false).await,
+                }
+                Flow::Continue
+            }
         }
     }
 
     async fn on_join(&self, token: &str, req_id: Option<String>) -> Flow {
         match self.room.join(token, req_id.as_deref()).await {
-            Ok(GameState::JoinInfo { joined, .. }) => {
-                self.send(ser(&ServerMsg::Joined { name: joined, room_id: self.room_id.clone(), })).await;
+            Ok(GameState::JoinInfo { joined, chat, .. }) => {
+                self.send(ser(&ServerMsg::Joined { name: joined, room_id: self.room_id.clone(), chat })).await;
             }
             Ok(_) => unreachable!("join só devolve JoinInfo"),
             Err(e) => self.push_error(err_text(&e), false).await,
@@ -142,7 +157,7 @@ impl Session {
                     tokio::spawn(async move {
                         tokio::time::sleep(Duration::from_secs(60)).await;
                         if let Some(declined_state) = room.timeout_rematch(cycle).await {
-                            let _ = tx.send(declined_state);
+                            let _ = tx.send(ServerMsg::State { state: declined_state, req_id: None });
                             hub.remove_room(&room_id);
                         }
                     });
@@ -166,15 +181,15 @@ impl Session {
     }
 
     async fn connection(hub: Arc<GameHub>, live: Arc<LiveRoom>, room_id: String, token: Option<String>,
-        mut rx: broadcast::Receiver<GameState>, socket: WebSocket) {
+        mut rx: broadcast::Receiver<ServerMsg>, socket: WebSocket) {
 
         let (mut sink, mut stream) = socket.split();
 
         if let Some(ref tok) = token {
-            if let Ok(GameState::JoinInfo { joined, .. }) = live.handle.join(tok, None).await {
-                let _ = sink.send(Message::Text(ser(&ServerMsg::Joined { name: joined, room_id: room_id.clone(), }))).await;
+            if let Ok(GameState::JoinInfo { joined, chat, .. }) = live.handle.join(tok, None).await {
+                let _ = live.tx.send(ServerMsg::Joined { name: joined, room_id: room_id.clone(), chat });
                 let st = live.handle.snapshot().await;
-                let _ = live.tx.send(st);
+                let _ = live.tx.send(ServerMsg::State { state: st, req_id: None });
             }
         }
 
