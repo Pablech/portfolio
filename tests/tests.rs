@@ -38,6 +38,7 @@ mod tests {
             request_cache: LruCache::new(NonZeroUsize::new(10).unwrap()),
             rematch_votes: vec![false; 2],
             round: 0,
+            last_chat: vec![None; 2],
         })
     }
 
@@ -155,7 +156,7 @@ mod tests {
         assert!(matches!(err, GameError::ErrorMove(_)));
 
         let info = room.join("tok-p2", None).await.unwrap();
-        let GameState::JoinInfo { joined, room_id } = info else {
+        let GameState::JoinInfo { joined, room_id, .. } = info else {
             panic!("join deveria devolver JoinInfo");
         };
         assert_eq!(joined, "bob");

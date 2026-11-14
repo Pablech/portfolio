@@ -8,19 +8,35 @@ use site::{
 };
 
 async fn wait_piece<S, E>(r: &mut S, piece: &str) -> String
-    where
-        S: futures::Stream<Item = Result<Message, E>> + Unpin,
-        E: std::fmt::Debug, 
-    {
-        let needle = format!("| {} ", piece);
-        loop {
-            let msg = r.next().await
-                .expect("stream fechou antes do estado esperado") 
-                .expect("erro no websocket"); 
-            let txt = msg.to_string();
-            if txt.contains(&needle) {
-                return txt;
-            }
+where
+    S: futures::Stream<Item = Result<Message, E>> + Unpin,
+    E: std::fmt::Debug, 
+{
+    let needle = format!("| {} ", piece);
+    loop {
+        let msg = r.next().await
+            .expect("stream fechou antes do estado esperado") 
+            .expect("erro no websocket"); 
+        let txt = msg.to_string();
+        if txt.contains(&needle) {
+            return txt;
+        }
+    }
+}
+
+async fn wait_txt<S, E>(r: &mut S, needle: &str) -> String
+where
+    S: futures::Stream<Item = Result<Message, E>> + Unpin,
+    E: std::fmt::Debug,
+{
+    loop {
+        let msg = r.next().await
+            .expect("stream fechou antes do esperado")
+            .expect("erro no websocket");
+        let txt = msg.to_string();
+        if txt.contains(needle) {
+            return txt;
+        }
     }
 }
 
@@ -128,4 +144,57 @@ async fn join_room_vs_cpu_nao_tem_assento() {
 
     let resp = claim(&addr, &room_id, serde_json::json!({"name": "intruso"})).await;
     assert_eq!(resp.status(), reqwest::StatusCode::CONFLICT);
+}
+
+#[tokio::test]
+async fn chat_chega_pros_dois_e_nao_vaza_token() {
+    let (addr, room_id, t1) = spawn_server(false).await;
+
+    let resp = claim(&addr, &room_id, serde_json::json!({"name": "bob", "fig": "&"})).await;
+    assert_eq!(resp.status(), 200);
+    let seat: serde_json::Value = resp.json().await.unwrap();
+    let t2 = seat["token"].as_str().unwrap().to_string();
+
+    let (s1, _) = tokio_tungstenite::connect_async(
+        format!("ws://{}/games/ws/{}?token={}", addr, room_id, t1)).await.unwrap();
+    let (s2, _) = tokio_tungstenite::connect_async(
+        format!("ws://{}/games/ws/{}?token={}", addr, room_id, t2)).await.unwrap();
+    let (mut w1, mut r1) = s1.split();
+    let (mut w2, mut r2) = s2.split();
+
+    // consome os Joined dos dois lados
+    let _ = r1.next().await.unwrap().unwrap();
+    let _ = r2.next().await.unwrap().unwrap();
+
+    // --- alice conversa ---
+    w1.send(Message::text(format!(
+        r#"{{"action":"chat","data":{{"token":"{}","text":"  boa jogada!  "}}}}"#, t1))).await.unwrap();
+
+    let c1 = wait_txt(&mut r1, "\"chat\"").await;
+    let c2 = wait_txt(&mut r2, "\"chat\"").await;
+
+    // mesma mensagem, autor resolvido pro NOME, texto trimado
+    let v1: serde_json::Value = serde_json::from_str(&c1).unwrap();
+    let v2: serde_json::Value = serde_json::from_str(&c2).unwrap();
+    assert_eq!(v1, v2, "ambos recebem o mesmo chat");
+    assert_eq!(v1["author"], "alice", "author é o nome, não o token");
+    assert_eq!(v1["text"], "boa jogada!", "texto trimado");
+    assert!(!c1.contains(&t1), "token de alice NÃO pode vazar pro canal: {c1}");
+    assert!(!c2.contains(&t1), "token de alice NÃO pode vazar pro guest: {c2}");
+
+    // --- token inválido: erro só pro remetente, nada no canal ---
+    w2.send(Message::text(format!(
+        r#"{{"action":"chat","data":{{"token":"golpista","text":"oi?"}}}}"#))).await.unwrap();
+    let err = wait_txt(&mut r2, "\"error\"").await;
+    assert!(err.contains("token"), "rejeita token estranho: {err}");
+
+    // prova de ausência por ordem: próximo chat válido precisa ser o ÚNICO seguinte no canal
+    w2.send(Message::text(format!(
+        r#"{{"action":"chat","data":{{"token":"{}","text":"beleza"}}}}"#, t2))).await.unwrap();
+    let c1b = wait_txt(&mut r1, "\"chat\"").await;
+    let c2b = wait_txt(&mut r2, "\"chat\"").await;
+    let v1b: serde_json::Value = serde_json::from_str(&c1b).unwrap();
+    let v2b: serde_json::Value = serde_json::from_str(&c2b).unwrap();
+    assert_eq!(v1b["author"], "bob", "chat do bob é o próximo no canal — o inválido não entrou");
+    assert_eq!(v1b, v2b);
 }

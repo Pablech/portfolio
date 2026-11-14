@@ -25,4 +25,5 @@ pub trait RoomHandle: Send + Sync {
     async fn snapshot(&self) -> GameState;
     async fn rematch_cycle(&self) -> u64;
     async fn timeout_rematch(&self, cycle: u64) -> Option<GameState>;
+    async fn chat(&self, token: &str, text: &str) -> Result<String, GameError>;
 }

@@ -1,13 +1,12 @@
-use std::{sync::{Arc, atomic::{AtomicBool, AtomicUsize}}, time::Duration};
+use std::{sync::{Arc, atomic::{AtomicBool, AtomicUsize}}, time::{Duration, Instant}};
 use dashmap::DashMap;
 use lru::LruCache;
 use serde::{Deserialize, Serialize};
 use tokio::sync::broadcast;
 
-use crate::repositories::games::domain::{
-    enums::{AgentKind, GameState}, 
-    traits::{CpuBrain, RoomHandle, GameLogic},
-};
+use crate::repositories::games::{ServerMsg, domain::{
+    enums::{AgentKind, GameState}, traits::{CpuBrain, GameLogic, RoomHandle},
+}};
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Cpu {
@@ -50,11 +49,12 @@ pub struct GameRoom<L: GameLogic> {
     pub request_cache: LruCache<String, GameState>,
     pub rematch_votes: Vec<bool>,
     pub round: usize,
+    pub last_chat: Vec<Option<Instant>>,
 }
 
 pub struct LiveRoom {
     pub handle: Arc<dyn RoomHandle>,
-    pub tx: broadcast::Sender<GameState>,
+    pub tx: broadcast::Sender<ServerMsg>,
     pub live: AtomicUsize,
     pub ever_joined: AtomicBool,
 }

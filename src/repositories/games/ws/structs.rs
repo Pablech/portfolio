@@ -3,7 +3,7 @@ use axum::extract::ws::Message;
 use serde::Deserialize;
 use tokio::sync::{broadcast, mpsc};
 
-use crate::repositories::games::{GameHub, GameState, LiveRoom, RoomHandle};
+use crate::repositories::games::{GameHub, LiveRoom, RoomHandle, ServerMsg};
 
 #[derive(Deserialize)]
 pub struct WsParams {
@@ -15,6 +15,6 @@ pub struct Session {
     pub live: Arc<LiveRoom>,
     pub room: Arc<dyn RoomHandle>,
     pub room_id: String,
-    pub tx: broadcast::Sender<GameState>,
+    pub tx: broadcast::Sender<ServerMsg>,
     pub out_tx: mpsc::Sender<Message>,
 }

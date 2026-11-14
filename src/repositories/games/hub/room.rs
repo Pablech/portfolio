@@ -1,12 +1,12 @@
-use std::{num::NonZeroUsize, sync::{Arc, atomic::{AtomicBool, AtomicUsize, Ordering}}, time::Duration};
+use std::{num::NonZeroUsize, sync::{Arc, atomic::{AtomicBool, AtomicUsize, Ordering}}, time::{Duration, Instant}};
 use dashmap::DashMap;
 use lru::LruCache;
 use tokio::sync::{Mutex, broadcast};
 use anyhow::{Error, anyhow};
 
 use crate::{handlers::structs::ClaimedSeat, repositories::games::{
-    AgentKind, GameHub, LiveRoom, MoveOutcome, domain::{enums::{GameError, GameState, PlayResult}, 
-    structs::{Agent, GameRoom}, 
+    AgentKind, GameHub, GameState, LiveRoom, MoveOutcome, PlayResult, 
+    domain::{enums::GameError, structs::{Agent, GameRoom}, 
     traits::{CpuBrain, GameLogic, RoomHandle}}, generate_token,
 }};
 
@@ -32,7 +32,7 @@ impl GameHub {
         let r = self.rooms.get(id)?.clone();
         let prev = r.live.fetch_add(1, Ordering::SeqCst);
         if prev == 0 {
-            r.ever_joined.store(true, Ordering::SeqCst);   // PRIMEIRA visita: aqui
+            r.ever_joined.store(true, Ordering::SeqCst);
         }
         Some(r)
     }
@@ -65,6 +65,7 @@ impl GameHub {
                 request_cache: LruCache::new(NonZeroUsize::new(30).unwrap()),
                 rematch_votes: vec![false; n_agents],
                 round: 0,
+                last_chat: vec![None; n_agents],
             })),
             tx,
             live: AtomicUsize::new(0),
@@ -164,11 +165,13 @@ impl <L: GameLogic> RoomHandle for Mutex<GameRoom<L>> {
             }
         }
 
+        let humans = room.agents.iter().filter(|a| matches!(a.kind, AgentKind::Human)).count();
         for a in &mut room.agents {
             if a.token.as_deref() == Some(token) {
                 let res = GameState::JoinInfo { 
                     joined: a.name.clone(), 
-                    room_id: room.room_id.clone()
+                    room_id: room.room_id.clone(),
+                    chat: humans >= 2,
                 };
                 if let Some(req_id) = req_id {
                     room.request_cache.put(req_id.to_string(), res.clone());
@@ -323,5 +326,22 @@ impl <L: GameLogic> RoomHandle for Mutex<GameRoom<L>> {
             .unwrap_or_else(|| "Tempo esgotado para rematch".into());
 
         Some(GameState::State(MoveOutcome::RematchDeclined { by: missing_player, }))
+    }
+
+    async fn chat(&self, token: &str, text: &str) -> Result<String, GameError> {
+        let mut room = self.lock().await;
+
+        let idx = room.agents.iter().position(|a| a.token.as_deref() == Some(token))
+            .ok_or_else(|| GameError::ErrorJoin("token inválido".into()))?;
+
+        let text = text.trim().chars().take(240).collect::<String>();
+        if text.is_empty() { return Err(GameError::ErrorValidation("Mensagem vazia".into()));}
+
+        if let Some(Some(at)) = room.last_chat.get(idx) {
+            if at.elapsed() < Duration::from_millis(500) { return Ok(String::new()); }
+        }
+
+        room.last_chat[idx] = Some(Instant::now());
+        Ok(room.agents[idx].name.clone())
     }
 }
