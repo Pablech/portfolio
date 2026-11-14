@@ -16,6 +16,8 @@ static KEYS_OUTPUT: LazyLock<String> = LazyLock::new(|| {
     ])
 });
 
+
+// router = GET /api/keys
 pub async fn keys() -> ([(header::HeaderName, &'static str); 1], Json<BasicRes>) {
     ([(header::CACHE_CONTROL, "no-store")], Json(BasicRes { output: KEYS_OUTPUT.clone() }))
 }

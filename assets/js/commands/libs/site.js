@@ -1,7 +1,7 @@
 import { GAME_PROMPT, DEFAULT_GAME_HEADER, DEFAULT_GAME_MSG, KIND_GAME } from "../../ui/outputs.js";
 import { startWizard } from "../email.js";
 import { fetchAndPrint } from "../../ui/fetchAndPrint.js";
-import { fetchAbout, fetchGitHub } from "../../api/api.js";
+import { fetchAbout, fetchGitHub, fetchLinks } from "../../api/api.js";
 import { startGitHubPagination } from "../github.js";
 import { onNew } from "../kernel.js";
 
@@ -45,3 +45,28 @@ siteRegistry['games'] = () => onNew?.({
     welcome: DEFAULT_GAME_MSG,
     kind: KIND_GAME,
 });
+
+siteRegistry['links'] = async (_value, shell) => {    
+    const lastPrompt = shell.prompt;
+    shell.setPrompt("Carregando... [AGUARDE]");
+    shell.input.disabled = true;
+    
+    try {
+        const { ok, data } = await fetchLinks();
+        if (!ok || !Array.isArray(data) || data.length === 0) {
+        shell.print('<span style="color:red;">[Erro] Sem links disponíveis.</span>');
+            return; 
+        } 
+
+        const pad = Math.max(...data.map(l => l.label.length));
+        const html = data.map(({ label, mask, url }) =>
+            `${label.padEnd(pad)}: <a href="${url}" target="_blank" ` +
+            `rel="noopener noreferrer" style="color:var(--tty-color);">${mask}</a>`
+        ).join('<br>');
+        shell.print(html);
+    } finally {
+        shell.input.disabled = false;
+        shell.setPrompt(lastPrompt);
+        shell.focus(true);
+    }
+}

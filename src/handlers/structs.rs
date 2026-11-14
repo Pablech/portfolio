@@ -2,6 +2,13 @@ use serde::{Deserialize, Serialize};
 use askama::Template;
 
 
+#[derive(Serialize, Clone)]
+pub struct LinkItem {
+    pub label: &'static str,
+    pub mask: &'static str,
+    pub url: &'static str,
+}
+
 #[derive(Serialize)]
 pub struct BasicRes {
     pub output: String,
