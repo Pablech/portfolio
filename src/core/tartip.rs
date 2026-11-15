@@ -61,7 +61,7 @@ pub async fn tarpit_scanners(State(tarpit): State<Arc<TarpitState>>,
         let delay_seconds = rand::thread_rng().gen_range(60..=85);
         let sc_ok = StatusCode::OK;
         tracing::warn!(
-            "TARPIT: Scanner ip={} status={} delay={} path={} user-agent={:.20}",
+            "TARPIT: Scanner ip={} status={} delay={} path={} user-agent={}",
             ip, sc_ok, delay_seconds, path_and_query, ua,
         );
 
