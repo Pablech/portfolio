@@ -24,18 +24,18 @@ where
     }
 }
 
-async fn wait_txt<S, E>(r: &mut S, needle: &str) -> String
+async fn wait_status<S, E>(r: &mut S, status: &str) -> (serde_json::Value, String)
 where
     S: futures::Stream<Item = Result<Message, E>> + Unpin,
     E: std::fmt::Debug,
 {
     loop {
-        let msg = r.next().await
+        let txt = r.next().await
             .expect("stream fechou antes do esperado")
-            .expect("erro no websocket");
-        let txt = msg.to_string();
-        if txt.contains(needle) {
-            return txt;
+            .expect("erro no websocket")
+            .to_string();
+        if let Ok(v) = serde_json::from_str::<serde_json::Value>(&txt) {
+            if v["status"] == status { return (v, txt); }
         }
     }
 }
@@ -44,10 +44,10 @@ async fn spawn_server(vs_cpu: bool) -> (String, String, String) {
     let env = std::sync::Arc::new(EnvSetting::new());
     let http = HttpC::new(&env);
     let gh = std::sync::Arc::new(GitHub::new(&env, &http));
-    let games = std::sync::Arc::new(GameHub::new(3, 4));
+    let games = std::sync::Arc::new(GameHub::new(3, 4, 2));
 
     let created = GameKind::Connect4
-        .create(&games, "alice".into(), 'X', vs_cpu).unwrap();
+        .create(&games, Some("alice".to_string()), Some('X'), vs_cpu).unwrap();
 
     let app = create_router(gh, env, games);
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
@@ -162,39 +162,30 @@ async fn chat_chega_pros_dois_e_nao_vaza_token() {
     let (mut w1, mut r1) = s1.split();
     let (mut w2, mut r2) = s2.split();
 
-    // consome os Joined dos dois lados
-    let _ = r1.next().await.unwrap().unwrap();
-    let _ = r2.next().await.unwrap().unwrap();
+    let (_, _) = wait_status(&mut r1, "joined").await;
+    let (_, _) = wait_status(&mut r2, "joined").await;
 
-    // --- alice conversa ---
     w1.send(Message::text(format!(
         r#"{{"action":"chat","data":{{"token":"{}","text":"  boa jogada!  "}}}}"#, t1))).await.unwrap();
 
-    let c1 = wait_txt(&mut r1, "\"chat\"").await;
-    let c2 = wait_txt(&mut r2, "\"chat\"").await;
+    let (v1, c1) = wait_status(&mut r1, "chat").await;
+    let (v2, c2) = wait_status(&mut r2, "chat").await;
 
-    // mesma mensagem, autor resolvido pro NOME, texto trimado
-    let v1: serde_json::Value = serde_json::from_str(&c1).unwrap();
-    let v2: serde_json::Value = serde_json::from_str(&c2).unwrap();
     assert_eq!(v1, v2, "ambos recebem o mesmo chat");
     assert_eq!(v1["author"], "alice", "author é o nome, não o token");
     assert_eq!(v1["text"], "boa jogada!", "texto trimado");
-    assert!(!c1.contains(&t1), "token de alice NÃO pode vazar pro canal: {c1}");
+    assert!(!c1.contains(&t1), "token de alice NÃO pode vazar: {c1}");
     assert!(!c2.contains(&t1), "token de alice NÃO pode vazar pro guest: {c2}");
 
-    // --- token inválido: erro só pro remetente, nada no canal ---
     w2.send(Message::text(format!(
         r#"{{"action":"chat","data":{{"token":"golpista","text":"oi?"}}}}"#))).await.unwrap();
-    let err = wait_txt(&mut r2, "\"error\"").await;
-    assert!(err.contains("token"), "rejeita token estranho: {err}");
+    let (ev, _) = wait_status(&mut r2, "error").await;
+    assert!(ev["message"].as_str().unwrap_or("").contains("token"));
 
-    // prova de ausência por ordem: próximo chat válido precisa ser o ÚNICO seguinte no canal
     w2.send(Message::text(format!(
         r#"{{"action":"chat","data":{{"token":"{}","text":"beleza"}}}}"#, t2))).await.unwrap();
-    let c1b = wait_txt(&mut r1, "\"chat\"").await;
-    let c2b = wait_txt(&mut r2, "\"chat\"").await;
-    let v1b: serde_json::Value = serde_json::from_str(&c1b).unwrap();
-    let v2b: serde_json::Value = serde_json::from_str(&c2b).unwrap();
-    assert_eq!(v1b["author"], "bob", "chat do bob é o próximo no canal — o inválido não entrou");
+    let (v1b, _) = wait_status(&mut r1, "chat").await;
+    let (v2b, _) = wait_status(&mut r2, "chat").await;
+    assert_eq!(v1b["author"], "bob", "próximo chat é do bob — o inválido não entrou no canal");
     assert_eq!(v1b, v2b);
 }

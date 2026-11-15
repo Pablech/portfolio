@@ -3,25 +3,29 @@ use std::sync::Arc;
 use anyhow::{Error, anyhow};
 
 use crate::repositories::games::{
-    Agent, AgentKind, Cpu, CpuBrain, CreatedRoom, GameHub, GameKind, connect4::{Conn4Table, SmartishBrain}, generate_token, 
+    Agent, AgentKind, CpuBrain, CreatedRoom, GameHub, GameKind, GameLogic, 
+    connect4::{Conn4Table, SmartishBrain}, generate_token, 
 };
 
-pub fn build_agents(p1_name: String, p1_fig: char, vs_cpu: bool) -> Vec<Agent> {
-    let p1 = Agent {
-        kind: AgentKind::Human,
-        name: p1_name,
-        fig: p1_fig,
-        token: Some(generate_token()),
-    };
+pub fn build_agents(host_name: Option<String>, host_fig: Option<char>, vs_cpu: bool, seats: usize) -> Vec<Agent> {
+    let mut taken_figs: Vec<char> = Vec::with_capacity(seats);
+    let mut taken_names: Vec<String> = Vec::with_capacity(seats);
+    let mut agents: Vec<Agent> = Vec::with_capacity(seats);
 
-    let p2 = if vs_cpu {
-        let cpu = Cpu::new(vec![p1_fig]); 
-        Agent { kind: AgentKind::Cpu, name: cpu.name, fig: cpu.fig, token: None }
-    } else {
-        Agent { kind: AgentKind::Human, name: "p2".into(), fig: '&'.into(), token: None }
-    };
+    for seat in 0..seats {
+        let (kind, name, fig) = match seat {
+            0 => (AgentKind::Human, host_name.clone(), host_fig),
+            _ if vs_cpu => (AgentKind::Cpu, None, None),
+            _ => (AgentKind::Human, None, None),
+        };
+        let agent = Agent::new(kind, name, fig, seat, &taken_figs, &taken_names);
+        taken_figs.push(agent.fig);
+        taken_names.push(agent.name.clone());
+        agents.push(agent);
+    }
 
-    vec![p1, p2]
+    agents[0].token = Some(generate_token());
+    agents
 }
 
 impl GameKind {
@@ -32,22 +36,23 @@ impl GameKind {
         }
     }
 
-    pub fn create(&self, hub: &Arc<GameHub>, p1_name: String, p1_fig: char, vs_cpu: bool)
+    pub fn create(&self, hub: &Arc<GameHub>, host_name: Option<String>, host_fig: Option<char>, vs_cpu: bool)
         -> Result<CreatedRoom, Error> {
-
-        let agents = build_agents(p1_name, p1_fig, vs_cpu);
-
-        let host_token = agents[0].token.clone()
-            .ok_or_else(|| anyhow!("host sem token"))?;
 
         match self {
             Self::Connect4 => {
+                let seats = Conn4Table::SEATS;
+                let agents = build_agents(host_name, host_fig, vs_cpu, seats);
+
                 let brains: Vec<Option<Box<dyn CpuBrain<Conn4Table>>>> = if vs_cpu {
-                    vec![None, Some(Box::new(SmartishBrain))]
+                    (0..seats).map(|i| match i {
+                        0 => None,
+                        _ => Some(Box::new(SmartishBrain) as Box<dyn CpuBrain<Conn4Table>>),
+                    }).collect()
                 } else {
                     vec![None, None]
                 };
-                let (room_id, _) = hub.create_room(agents, brains)?;
+                let (room_id, host_token) = hub.create_room(agents, brains)?;
                 Ok(CreatedRoom { room_id, host_token })
             }
         }

@@ -19,6 +19,7 @@ pub struct EnvSetting {
     pub host: String,
     pub reap_grace: u64,
     pub orphan_ttl: u64,
+    pub seat_grace: u64,
 }
 
 impl EnvSetting {
@@ -51,6 +52,8 @@ impl EnvSetting {
             .parse::<u64>().expect("reap_grace deve ser na base 10");
         let orphan_ttl = get_required("ORPHAN_TTL")
             .parse::<u64>().expect("orphan_ttl deve ser na base 10");
+        let seat_grace = get_required("SEAT_GRACE")
+            .parse::<u64>().expect("seat_grace deve ser na base 10");
 
         if !missing_vars.is_empty() {
             error!("Variáveis de ambiente ausentes: {}", missing_vars.join(", ").to_uppercase());
@@ -65,7 +68,7 @@ impl EnvSetting {
         Self { 
             git_token, user_agent, user_name, max_retries, request_timeout, url, 
             tunner, cloudflared_cred, token_smtp, user_smtp, server_smtp, port_smtp, 
-            port, host, reap_grace, orphan_ttl,
+            port, host, reap_grace, orphan_ttl, seat_grace,
         }
     }
 }

@@ -1,8 +1,4 @@
-use rand::seq::SliceRandom;
-
-use crate::repositories::games::{Cpu, Human};
-
-const CPU_FIGS: &[char] = &['@', '&', '%', 'C', '?', '$', '#'];
+use crate::repositories::games::{Agent, AgentKind, Human, utils::{choice_fig, resolve_name}};
 
 impl Human {
     pub fn new(name: String, fig: char) -> Self {
@@ -10,19 +6,14 @@ impl Human {
     }
 }
 
-impl Cpu {
-    pub fn new(figs: Vec<char>) ->Self {
-        let mut candidates: Vec<char> = CPU_FIGS
-            .iter()
-            .copied()
-            .filter(|f| !figs.contains(f))
-            .collect();
-
-        let fig = candidates
-            .choose_mut(&mut rand::thread_rng())
-            .copied()
-            .unwrap_or('?');
+impl Agent {
+    pub fn new(kind: AgentKind, name: Option<String>, fig: Option<char>, seat: usize, 
+            taken_figs: &Vec<char>, taken_names: &Vec<String>) -> Self {
         
-        Self { name: "Cpu.ai".into(), fig: fig, players_fig: figs }
+        let fig = fig.unwrap_or_else(|| choice_fig(&taken_figs));
+        let default_name = format!("Player {}", seat + 1);
+        let name = resolve_name(name, &default_name, seat, taken_names);
+        
+        Self { kind, name, fig, token: None, default_name, default_fig: fig }
     }
 }

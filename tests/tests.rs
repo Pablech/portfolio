@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use std::num::NonZeroUsize;
+    use std::{num::NonZeroUsize, time::Duration};
     use lru::LruCache;
     use tokio::sync::Mutex;
 
@@ -11,20 +11,13 @@ mod tests {
         };
 
     fn human_agents() -> Vec<Agent> {
-        vec![
-            Agent {
-                kind: AgentKind::Human,
-                name: "alice".into(),
-                fig: '1'.into(),
-                token: Some("tok-p1".into()),
-            },
-            Agent {
-                kind: AgentKind::Human,
-                name: "bob".into(),
-                fig: '2'.into(),
-                token: Some("tok-p2".into()),
-            },
-        ]
+        let mut agents = build_agents(Some("alice".to_string()), Some('X'), false, 2);
+
+        agents[0].token = Some("tok-p1".into());
+        agents[1].name = "bob".into();
+        agents[1].token = Some("tok-p2".into());
+
+        agents
     }
 
     fn human_room() -> Mutex<GameRoom<Conn4Table>> {
@@ -40,6 +33,7 @@ mod tests {
             round: 0,
             last_chat: vec![None; 2],
             last_left: vec![None; 2],
+            seat_grace: Duration::from_secs(3 * 60),
         })
     }
 
@@ -182,14 +176,16 @@ mod tests {
     #[test]
     fn build_agents_monta_o_que_se_espera() {
 
-        let agents = build_agents("alice".into(), 'X', true);
+        let agents = build_agents(Some("alice".to_string()), Some('X'), true, 2);
         assert_eq!(agents.len(), 2);
         assert!(matches!(agents[0].kind, AgentKind::Human));
         assert!(agents[0].token.is_some(), "host sempre tem token");
         assert!(matches!(agents[1].kind, AgentKind::Cpu));
         assert!(agents[1].token.is_none(), "CPU não tem token (nunca teve)");
+        assert_ne!(agents[1].fig, 'O', "CPU/pvp não pode herdar a figura do host");
+        assert_eq!(agents[1].name, "Player 2", "assento pendente nasce com default posicional");
 
-        let agents = build_agents("bob".into(), 'O', false);
+        let agents = build_agents(Some("outro".to_string()), Some('O'), false, 2);
         assert!(matches!(agents[1].kind, AgentKind::Human));
         assert!(agents[1].token.is_none(), "p2 nasce SEM token: assento vem do claim");
     }

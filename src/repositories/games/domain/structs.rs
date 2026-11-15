@@ -26,6 +26,8 @@ pub struct Agent {
     pub name: String,
     pub fig: char,
     pub token: Option<String>,
+    pub default_name: String,
+    pub default_fig: char,
 }
 
 pub struct CreatedRoom {
@@ -37,6 +39,7 @@ pub struct GameHub {
     pub rooms: DashMap<String, Arc<LiveRoom>>,
     pub reap_grace: Duration,
     pub orphan_ttl: Duration,
+    pub seat_grace: Duration,
 }
 
 pub struct GameRoom<L: GameLogic> {
@@ -51,6 +54,7 @@ pub struct GameRoom<L: GameLogic> {
     pub round: usize,
     pub last_chat: Vec<Option<Instant>>,
     pub last_left: Vec<Option<Instant>>,
+    pub seat_grace: Duration,
 }
 
 pub struct LiveRoom {
