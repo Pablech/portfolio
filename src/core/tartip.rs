@@ -17,12 +17,22 @@ use crate::core::{
 };
 
 const PROBE_PATTERNS: &[&str] = &[
-    ".php", "phpinfo", "wp-", ".env", ".git", 
+    ".php", "phpinfo", "wp-", ".env", ".git", ".exe",
     "config", ".md", "?rest_", "login", "register", 
     "onboarding", "verify", ".pem", ".key", "-bin",
     "vercel", "netlify", "fly", "railway", "pnpm-",
     "lerna", "nx.", "php", "admin", ".sql", ".ssh",
-    ".aws",  
+    ".aws", "credentials", "service-account", "firebase", ".htpasswd",
+    ".npmrc", ".netrc", ".pypirc", ".pgpass", ".my.cnf", ".pypirc",
+    ".DS_Store", ".dockercfg", ".boto", ".s3cfg",
+    "docker-compose", "Dockerrun", ".terraform", "tfstate", "tfvars",
+    "Jenkinsfile", "buildspec", "azure-pipelines", "wrangler",
+    "actuator", "heapdump", "pprof", "debug/vars", "server-status",
+    "_debugbar", "_ignition", "telescope", "trace.axd", "elmah",
+    "swagger", "openapi", "graphql", "metrics",
+    "elasticsearch", "nacos", "vault", "litellm", "flowise",
+    "serviceaccount", "proc/self", "cgi-bin",
+    ".claude", ".codex", ".gemini", ".cursor",
 ];
 
 pub async fn tarpit_scanners(State(tarpit): State<Arc<TarpitState>>,
