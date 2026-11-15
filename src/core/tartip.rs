@@ -19,7 +19,10 @@ use crate::core::{
 const PROBE_PATTERNS: &[&str] = &[
     ".php", "phpinfo", "wp-", ".env", ".git", 
     "config", ".md", "?rest_", "login", "register", 
-    "onboarding", "verify"
+    "onboarding", "verify", ".pem", ".key", "-bin",
+    "vercel", "netlify", "fly", "railway", "pnpm-",
+    "lerna", "nx.", "php", "admin", ".sql", ".ssh",
+    ".aws",  
 ];
 
 pub async fn tarpit_scanners(State(tarpit): State<Arc<TarpitState>>,
