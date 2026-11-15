@@ -66,6 +66,7 @@ impl GameHub {
                 rematch_votes: vec![false; n_agents],
                 round: 0,
                 last_chat: vec![None; n_agents],
+                last_left: vec![None; n_agents],
             })),
             tx,
             live: AtomicUsize::new(0),
@@ -165,21 +166,22 @@ impl <L: GameLogic> RoomHandle for Mutex<GameRoom<L>> {
             }
         }
 
+        let Some(idx) = room.agents.iter().position(|a| a.token.as_deref() == Some(token)) else {
+            return Err(GameError::ErrorJoin("token inválido para esta sala".into()));
+        };
+
+        room.last_left[idx] = None;
         let humans = room.agents.iter().filter(|a| matches!(a.kind, AgentKind::Human)).count();
-        for a in &mut room.agents {
-            if a.token.as_deref() == Some(token) {
-                let res = GameState::JoinInfo { 
-                    joined: a.name.clone(), 
-                    room_id: room.room_id.clone(),
-                    chat: humans >= 2,
-                };
-                if let Some(req_id) = req_id {
-                    room.request_cache.put(req_id.to_string(), res.clone());
-                } 
-                return Ok(res);
-            }
+        let res = GameState::JoinInfo { 
+            joined: room.agents[idx].name.clone(), 
+            room_id: room.room_id.clone(), 
+            chat: humans >= 2 
+        };
+
+        if let Some(req_id) = req_id {
+            room.request_cache.put(req_id.to_string(), res.clone());
         }
-        Err(GameError::ErrorJoin("token inválido para esta sala".into()))
+        Ok(res)
     }
 
     async fn play(&self, token: &str, input: &str, req_id: Option<&str>) -> Result<PlayResult, GameError> {
@@ -286,6 +288,7 @@ impl <L: GameLogic> RoomHandle for Mutex<GameRoom<L>> {
         }
 
         let token = generate_token();
+        room.last_left[indx] = None; 
         {
             let agent = &mut room.agents[indx];
             agent.token = Some(token.clone());
@@ -342,6 +345,26 @@ impl <L: GameLogic> RoomHandle for Mutex<GameRoom<L>> {
         }
 
         room.last_chat[idx] = Some(Instant::now());
+        Ok(room.agents[idx].name.clone())
+    }
+
+    async fn leave(&self, token: &str) -> Result<String, GameError> {
+        let mut room = self.lock().await;
+
+        let idx = room.agents.iter().position(|a| a.token.as_deref() == Some(token))
+            .ok_or_else(|| GameError::ErrorJoin("token inválido".into()))?;
+
+        room.last_left[idx] = Some(Instant::now());
+        Ok(room.agents[idx].name.clone())
+    }
+
+    async fn quit(&self, token: &str) -> Result<String, GameError> {
+        let mut room = self.lock().await;
+        let idx = room.agents.iter().position(|a| a.token.as_deref() == Some(token))
+            .ok_or_else(|| GameError::ErrorJoin("token inválido".into()))?;
+
+        room.agents[idx].token = None;
+        room.last_left[idx] = None;
         Ok(room.agents[idx].name.clone())
     }
 }

@@ -10,7 +10,7 @@ use tokio::sync::{broadcast, mpsc};
 
 use crate::{
     repositories::games::{
-        ClientMsg, Flow, Frame, GameError, GameHub, GameState, LiveRoom, MoveOutcome, PlayResult, ServerMsg, Session, WsParams
+        ClientMsg, Flow, Frame, GameError, GameHub, GameState, LiveRoom, MoveOutcome, PlayResult, ServerMsg, Session, WsParams,
     }, state::AppState
 };
 
@@ -108,6 +108,17 @@ impl Session {
                         { let _ = self.tx.send(ServerMsg::Chat { author, text: text.trim().to_owned() }); }
                     }
                     Ok(_) => {}
+                    Err(e) => self.push_error(err_text(&e), false).await,
+                }
+                Flow::Continue
+            }
+            ClientMsg::Quit { token, .. } => {
+                match self.room.quit(&token).await {
+                    Ok(name) => {
+                        let _ = self.tx.send(ServerMsg::Left { name: name.clone() });
+                        self.send(ser(&ServerMsg::Quit { name })).await;
+                        return Flow::Close;
+                    }
                     Err(e) => self.push_error(err_text(&e), false).await,
                 }
                 Flow::Continue
@@ -233,7 +244,17 @@ impl Session {
                 }
             }
         }
-        sess.hub.exit(&sess.room_id, &sess.live);
-        writer.abort();
+
+        if let Some(ref tok) = token {
+            if let Ok(name) = sess.live.handle.leave(tok).await {
+                let _ = sess.live.tx.send(ServerMsg::Left { name: name.to_string() });
+            }
+        }
+
+        let hub = sess.hub.clone();
+        let (room_id, live) = (sess.room_id.clone(), sess.live.clone());
+        drop(sess);
+        let _ = writer.await;
+        hub.exit(&room_id, &live);
     }
 }

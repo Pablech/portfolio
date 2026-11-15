@@ -2,7 +2,7 @@ import { attachShellEvents, initGlobalEvents, initTerminalHotkeys } from "./core
 import { getHtmlTerminal } from "./partials/terminal.js";
 import { DEFAULT_PROMPT, DEFAULT_OS_HEADER, DEFAULT_INIT_MSG, KIND_OS } from "./ui/outputs.js";
 import { makeColResizer } from "./core/resizers.js";
-import { setOnNew, setOnExit } from "./commands/kernel.js";
+import { setOnNew, setOnExit, openGamesShell, setSpawner } from "./commands/kernel.js";
 import { restoreTheme } from "./commands/theme.js";
 import { Shell } from "./core/shell.js";
 import { mountChat } from "./core/chat.js";
@@ -35,6 +35,18 @@ initTerminalHotkeys({
     closeTerminal
 });
 
+function resumePendingSession() {
+    let saved = null;
+    try { saved = JSON.parse(sessionStorage.getItem('game.session')); } catch {}
+    if (!saved?.room_id || !saved?.token) return;
+    
+    const shell = openGamesShell();
+    shell.state.resume = saved;
+    const value = `Sessão pendente na sala ${saved.room_id}. Reconectar? [y/N] `;
+    shell.print(`<span class="prompt">${shell.prompt}</span>${value}`);
+    shell.focus();
+}
+
 export function closeTerminal(shell) {
     if (shell.kind === KIND_OS) {
         shell.print("<span style='color:red;'>[!] Não podes fechar este terminal.</span>");
@@ -49,6 +61,8 @@ export function closeTerminal(shell) {
 
     host.remove();
     sep?.remove();
+
+    shell.state.activeWs?.close();
 
     shells.splice(shells.indexOf(shell), 1);
 
@@ -130,4 +144,6 @@ export function spawnTerminal(opts = {}) {
 
 setOnNew(spawnTerminal);
 setOnExit(closeTerminal);
+setSpawner(spawnTerminal);
 spawnTerminal();
+resumePendingSession();

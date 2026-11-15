@@ -1,12 +1,11 @@
 import { handleWizardInput } from "./email.js";
 import { handlePaginationInput } from "./github.js";
-import { KIND_GAME, KIND_OS } from "../ui/outputs.js";
-import { cmdError } from "../ui/outputs.js";
 import { suggestCmd } from "../core/utils.js";
 import { defaultRegistry } from "./libs/default.js";
 import { siteRegistry } from "./libs/site.js";
-import { gamesRegistry, routInput } from "./libs/games.js";
+import { gamesRegistry, resumeInput, routInput } from "./libs/games.js";
 import { cmdParser } from "../core/parser.js";
+import { GAME_PROMPT, DEFAULT_GAME_HEADER, DEFAULT_GAME_MSG, KIND_GAME, KIND_OS, cmdError } from "../ui/outputs.js";
 
 const registriesByKind = { 
     [KIND_OS]: { ...defaultRegistry, ...siteRegistry },
@@ -15,13 +14,24 @@ const registriesByKind = {
 
 export let onNew = null;
 export let onExit = null;
+export let spawner = null;
 
+export function setSpawner(fn) { spawner = fn; }
 export function setOnNew(fn) { onNew = fn; }
 export function setOnExit(fn) { onExit = fn; }
 
 export function getCommandNames(shell) { 
     const reg = registriesByKind[shell?.kind] || registriesByKind[KIND_OS];
     return Object.keys(reg); 
+}
+
+export function openGamesShell() {
+    return spawner({
+        prompt: GAME_PROMPT,
+        header: DEFAULT_GAME_HEADER,
+        welcome: DEFAULT_GAME_MSG,
+        kind: KIND_GAME,
+    });
 }
 
 export async function routeCommand(value, shell) {
@@ -31,6 +41,7 @@ export async function routeCommand(value, shell) {
 
     if (s.isPaginating)   { handlePaginationInput(value, shell); return; }
     if (s.wizardStep !== null) { handleWizardInput(value, shell); return; }
+    if (s.resume) { resumeInput(shell, value); return; }
     
     if (!value) return;
     
