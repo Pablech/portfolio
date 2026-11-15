@@ -144,6 +144,7 @@ function startGame(shell, roomId, token) {
         shell.state.inGame = false;
         shell.state.activeWs = null;
         shell.state.gameToken = null;
+        shell.state.boardPrinter = 0;
         closeChat(shell);
     };
 }
