@@ -50,6 +50,7 @@ pub struct GameRoom<L: GameLogic> {
     pub rematch_votes: Vec<bool>,
     pub round: usize,
     pub last_chat: Vec<Option<Instant>>,
+    pub last_left: Vec<Option<Instant>>,
 }
 
 pub struct LiveRoom {

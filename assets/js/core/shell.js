@@ -23,6 +23,8 @@ export class Shell {
             lastReqId: null,
             boardsPrinted: 0,
             myName: null,
+            gameRoom: null,
+            resume: null,
         };
 
         this.wizardData = { from: '', subject: '', body: '' };

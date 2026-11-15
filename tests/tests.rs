@@ -39,6 +39,7 @@ mod tests {
             rematch_votes: vec![false; 2],
             round: 0,
             last_chat: vec![None; 2],
+            last_left: vec![None; 2],
         })
     }
 

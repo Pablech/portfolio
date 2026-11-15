@@ -32,6 +32,7 @@ pub enum ClientMsg {
     Play { token: String, input: String, req_id: Option<String> },
     Rematch { token: String, accept: bool, req_id: Option<String>},
     Chat { token: String, text: String },
+    Quit { token: String, req_id: Option<String> },
 }
 
 #[derive(Debug, Serialize, Clone)]
@@ -41,6 +42,8 @@ pub enum ServerMsg {
     Error { message: String, fatal: bool },
     State { state: GameState, req_id: Option<String> },
     Chat { author: String, text: String },
+    Left { name: String },
+    Quit { name: String },
 }
 
 #[derive(Debug, Clone)]
