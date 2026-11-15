@@ -4,6 +4,7 @@ use crate::{handlers::structs::ClaimedSeat, repositories::games::domain::{
 }};
 
 pub trait GameLogic: Send + Sync + 'static {
+    const SEATS: usize;
     fn new() -> Self where Self: Sized;
     fn legal_moves(&self) -> Vec<usize>;
     fn output(&self, players: &[Agent]) -> String;

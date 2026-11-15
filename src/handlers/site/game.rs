@@ -15,10 +15,7 @@ pub async fn create_room(State(hub): State<Arc<GameHub>>,
 
     let CreatedRoom { room_id, host_token } = kind
         .create(
-            &hub,
-            req.name.unwrap_or_else(|| "p1".into()),
-            req.fig.unwrap_or('X'),
-            req.vs_cpu.unwrap_or(true),
+            &hub,req.name,req.fig, req.vs_cpu.unwrap_or(true),
         )
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 

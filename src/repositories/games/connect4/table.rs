@@ -38,6 +38,8 @@ impl Conn4Table {
 }
 
 impl GameLogic for Conn4Table {
+    const SEATS: usize = 2;
+    
     fn new() -> Self where Self: Sized {
         Self::default()
     }
