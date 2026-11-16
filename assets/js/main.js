@@ -100,6 +100,9 @@ export function spawnTerminal(opts = {}) {
     wrapper.style.display = 'flex';
     wrapper.style.flex = '1';
     wrapper.style.minWidth = '0';
+    wrapper.style.minHeight = '0'; 
+    wrapper.style.overflow = 'hidden';
+    wrapper.style.flexDirection = 'column';
     wrapper.innerHTML = getHtmlTerminal(prompt);
 
     const host = document.createElement('div');
