@@ -1,4 +1,4 @@
-import { cmdError } from "../ui/outputs.js";
+import { cmdError, errNote } from "../ui/outputs.js";
 
 const FLAG_ALIASES = {
     'g': 'game', 'game': 'game',
@@ -9,50 +9,109 @@ const FLAG_ALIASES = {
 };
 
 const CMD_RULES = {
-    'create': { required: [ 'game', 'name', 'fig', 'mode' ] },
-    'join': { required: [ 'name', 'fig', 'room' ] },
+    'create': {
+        required: ['game', 'name', 'fig', 'mode'],
+        usage: 'create -gnfm game name fig modo',
+    },
+    'join': {
+        required: ['name', 'fig', 'room'],
+        usage: 'join -nfr name fig room',
+    },
 };
 
+const PLACEHOLDERS = {
+    game: 'game', name: 'name', fig: 'fig',
+    room: 'room', mode: 'modo',
+};
+
+function shortAlias(key) {
+    const entries = Object.entries(FLAG_ALIASES).filter(([, k]) => k === key);
+    const short = entries.find(([a]) => a.length === 1);
+    return short ? short[0] : entries[0][0];
+}
+
+function dynUsage(cmd, providedOrder, missing) {
+    if (providedOrder.length === 0) return CMD_RULES[cmd].usage;
+    const ordered = [
+        ...providedOrder,
+        ...missing.filter(k => !providedOrder.includes(k)),
+    ];
+    const letters = ordered.map(shortAlias).join('');
+    const fields = ordered.map(k => `${PLACEHOLDERS[k] || k}`).join(' ');
+    return `${cmd} -${letters} ${fields}`;
+}
+
+function tokenize(raw) {
+    const tokens = [];
+    const re = /"([^"]*)"|'([^']*)'|(\S+)/g;
+    let m;
+    while ((m = re.exec(raw)) !== null) {
+        tokens.push(m[1] ?? m[2] ?? m[3]);
+    }
+    return tokens;
+}
+
+function flagKeys(body) {
+    if (FLAG_ALIASES[body]) return [FLAG_ALIASES[body]];
+    return [...body].map(ch => FLAG_ALIASES[ch] || null);
+}
+
 export function cmdParser(shell, input, cmds) {
-    const trimmed = input.trim();
-    const tokens = trimmed.split(/\s+/);
-    
+    const tokens = tokenize(input.trim());
     const cmd = tokens[0] || '';
-    if (!cmds.includes(cmd)) { 
+
+    if (!cmds.includes(cmd)) {
         shell.print(cmdError(cmd));
-        return null; 
+        return null;
     }
 
-    const rawFlags = {};
-    const regex = /--?([a-zA-Z-]+)(?:\s+|=)(?:["']([^"']+)["']|([^\s]+))/g;
-    let match;
+    const flags = {};
+    const providedOrder = [];
 
-    while ((match = regex.exec(trimmed)) !== null) {
-        const flagName = match[1];
-        const flagValue = match[2] !== undefined ? match[2] : match[3];
-        const key = FLAG_ALIASES[flagName] || flagName;
+    let i = 1;
+    while (i < tokens.length) {
+        const tok = tokens[i];
 
-        rawFlags[key] = flagValue;
+        if (!tok.startsWith('-')) {
+            i++;
+            continue;
+        }
+
+        const body = tok.replace(/^-{1,2}/, '');
+        const keys = flagKeys(body);
+
+        if (keys.length === 0 || keys.some(k => k === null)) {
+            shell.print(errNote(`flag inválida: ${tok} (uso: ${CMD_RULES[cmd]?.usage || '--flag valor'})`));
+            return null;
+        }
+
+        const values = [];
+        let j = i + 1;
+        while (values.length < keys.length && j < tokens.length && !tokens[j].startsWith('-')) {
+            values.push(tokens[j++]);
+        }
+
+        if (values.length < keys.length) {
+            shell.print(errNote(`faltam ${keys.length - values.length} valor(es) para ${tok}`));
+            return null;
+        }
+
+        keys.forEach((key, idx) => {
+            flags[key] = values[idx];
+            if (!providedOrder.includes(key)) providedOrder.push(key);
+        });
+        i = j;
     }
 
     const rule = CMD_RULES[cmd];
-    if (rule && rule.required) {
-        const missing = rule.required.filter(flag => !rawFlags[flag]);
-
+    if (rule?.required) {
+        const missing = rule.required.filter(f => !flags[f]);
         if (missing.length > 0) {
-            const formattedMissing = missing.map(key => {
-                const aliases = Object.entries(FLAG_ALIASES)
-                    .filter(([alias, k]) => k === key)
-                    .map(([alias]) => alias.length === 1 ? `-${alias}` : `--${alias}`);
-                
-                aliases.sort((a, b) => b.length - a.length);
-                return aliases.join(' ou ');
-            });
-            
-            shell.print(cmdError(cmd, null, formattedMissing.join(', ')));
+            shell.print(cmdError(cmd, null,
+                `precisa de: ${missing.join(', ')} — uso: ${dynUsage(cmd, providedOrder, missing)}`));
             return null;
         }
     }
 
-    return { cmd, flags: rawFlags, args: tokens.slice(1) };
+    return { cmd, flags, args: tokens.slice(1) };
 }
