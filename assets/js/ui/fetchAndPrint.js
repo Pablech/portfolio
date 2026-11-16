@@ -1,3 +1,5 @@
+import { wsGameError } from "./outputs.js";
+
 export async function fetchAndPrint(shell, fn, {
         loading = "Carregando... [AGUARDE]",
         onSuccess,
@@ -28,4 +30,15 @@ export async function fetchAndPrint(shell, fn, {
         shell.setPrompt(lastPrompt);
         shell.focus(true);
     }
+}
+
+export async function fetchGameAndPrint(shell, fn, { onSuccess } = {}) {
+    return fetchAndPrint(shell, fn, {
+        loading: "A comunicar com o servidor...",
+        onSuccess,
+        onError: (status, data) => {
+            const t = wsGameError(status, data);
+            return typeof t === 'function' ? t(data) : t;
+        },
+    });
 }

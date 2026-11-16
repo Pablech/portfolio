@@ -16,6 +16,10 @@ export function cmdError(value, suggestion = null, missing = null) {
     }
 }
 
+export function errNote(msg) {
+    return `<span style='color:red;'>[Erro] ${msg}</span>`;
+}
+
 export function wsGameError(status, data) {
     const GAME_STATUS = {
         400: (data) => `<span style='color:red;'>${data?.message ?? "Pedido inválido."}</span>`,
