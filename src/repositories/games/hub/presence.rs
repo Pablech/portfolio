@@ -33,7 +33,7 @@ impl <L: GameLogic> GameRoom<L> {
         let indx = self.agents.iter().enumerate().position(|(i, a)| {
             matches!(a.kind, AgentKind::Human) && (a.token.is_none() || 
                 self.last_left[i].map_or(false, |at| at.elapsed() >= self.seat_grace))
-            }).ok_or_else(|| GameError::ErrorJoin("sala cheia".into()))?;
+            }).ok_or_else(|| GameError::ErrorJoin("sala cheia ou partida solo".into()))?;
 
         let taken_names: Vec<String> = self.agents.iter()
             .enumerate().filter(|&(i, _)| i != indx)

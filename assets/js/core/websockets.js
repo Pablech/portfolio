@@ -1,4 +1,4 @@
-import { renderGameState } from "../ui/outputs.js";
+import { renderGameState, apiErrorLine, offlineError } from "../ui/outputs.js";
 import { escapeHtml, time } from "./utils.js";
 import { openChat, printChat, closeChat } from "./chat.js";
 import { setTicket, clearTicket, saveSession, clearSession } from "./sessionGame.js";
@@ -9,11 +9,11 @@ export function requireGame(shell) {
     const { activeWs, gameToken, inGame } = shell.state;
 
     if (!inGame || !activeWs || !gameToken) {
-        shell.print('Não estas em jogo.');
+        shell.print(offlineError('sem conexão com a sala'));
         return null;
     }
     if (activeWs.readyState !== WebSocket.OPEN) {
-        shell.print('Ligação fechada, reconnect/join para reconectar.');
+        shell.print(offlineError('sem sessão ativa'));
         return null;
     }
     return { ws: activeWs, token: gameToken };
@@ -31,7 +31,7 @@ export function startGame(shell, roomId, token) {
         try {
             msg = JSON.parse(event.data);
         } catch (err) {
-            shell.print(`<span style='color:red;'>[Erro WS]:</span> ${err.message}`);
+            shell.print(apiErrorLine('ws-parse', err.message));
             return;
         }
 
@@ -40,15 +40,15 @@ export function startGame(shell, roomId, token) {
             if (msg.chat) openChat(shell, `Chat da sala: ${msg.room_id}`);
             if (shell.state.myName == null) shell.state.myName = msg.name;
             if (msg.name === shell.state.myName) return;
-            printChat(shell, `<span style="opacity:.50">${time()}</span> <span style="opacity:.6">[Server]</span> ${escapeHtml(msg.name)} entrou na sala`);
+            printChat(shell, chatServer(`${msg.name} entrou na sala`));
         } else if (msg.status === 'error') {
-            shell.print(`<span style='color:red;'>[Error] ${msg.message}</span>`);
+            shell.print(apiErrorLine(msg.code, msg.message));
         } else if (msg.status === 'state') {
             renderGameState(shell, msg.state);
         } else if (msg.status === 'chat') {
-            printChat(shell, `<span style="opacity:.50">${time()}</span> <span style="opacity:.6">[${escapeHtml(msg.author)}]</span> ${escapeHtml(msg.text)}`);
+            printChat(shell, chatLine(msg.author, msg.text));
         } else if (msg.status === 'left') {
-            printChat(shell, `<span style="opacity:.50">${time()}</span> <span style="opacity:.6">[Server]</span> ${escapeHtml(msg.name)} saiu da sala`);
+            printChat(shell, chatServer(`${msg.name} saiu da sala`));
         } else if (msg.status === 'quit') {
             clearSession();
             clearTicket(shell);

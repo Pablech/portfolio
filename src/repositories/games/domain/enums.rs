@@ -1,4 +1,7 @@
+use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
+
+use crate::repositories::games::WsError;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "snake_case")]
@@ -15,6 +18,8 @@ pub enum GameError {
     ErrorMove(String),
     ErrorJoin(String),
     ErrorValidation(String),
+    ErrorNotFound(String),
+    ErrorProtocol(String),
 }
 
 #[derive(Debug, Serialize, Clone)]
@@ -39,7 +44,7 @@ pub enum ClientMsg {
 #[serde(tag = "status", rename_all = "snake_case")]
 pub enum ServerMsg {
     Joined { name: String, room_id: String, chat: bool },
-    Error { message: String, fatal: bool },
+    Error { code: u16, message: String },
     State { state: GameState, req_id: Option<String> },
     Chat { author: String, text: String },
     Left { name: String },
@@ -61,4 +66,41 @@ pub enum PlayResult {
 
 pub enum GameKind {
     Connect4,
+}
+
+impl GameError {
+    pub fn code(&self) -> u16 {
+        match self {
+            GameError::ErrorJoin(_) => 403,
+            GameError::ErrorMove(_) => 409,
+            GameError::ErrorValidation(_) => 422,
+            GameError::ErrorNotFound(_) => 404,
+            GameError::ErrorProtocol(_) => 400,
+            
+        }
+    }
+
+    pub fn erro(&self) -> &str {
+        match self {
+            GameError::ErrorJoin(m) => m,
+            GameError::ErrorMove(m) => m,
+            GameError::ErrorValidation(m) => m,
+            GameError::ErrorNotFound(m) => m,
+            GameError::ErrorProtocol(m) => m,
+        }
+    }
+
+    pub fn as_tuple(&self) -> (u16, &str) {
+        (self.code(), self.erro())
+    }
+}
+
+impl From<GameError> for WsError {
+    fn from(e: GameError) -> Self {
+        let (code, err) = e.as_tuple();
+        WsError(
+            StatusCode::from_u16(code).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR), 
+            err.to_string(),
+        )
+    }
 }

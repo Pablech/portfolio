@@ -1,8 +1,19 @@
 import { getHtmlChat } from "./../partials/chat.js";
+import { escapeHtml, time } from "./utils.js";
 
 const MIN_PANEL_H = 48;
 const TERM_MIN_H = 160;
 const MAX_LINES = 200; 
+
+const stamp = () => `<span style="opacity:.50">${time()}</span>`;
+
+export function chatLine(author, text) {
+    return `${stamp()} <span style="opacity:.6">[${escapeHtml(author)}]</span> ${escapeHtml(text)}`;
+}
+
+export function chatServer(text) {
+    return `${stamp()} <span style="opacity:.6">[Server]</span> ${escapeHtml(text)}`;
+}
 
 function makeRowResizer(handle, getPanel, getHost) {
     handle.addEventListener('mousedown', (e) => {

@@ -3,6 +3,7 @@ use dashmap::DashMap;
 use lru::LruCache;
 use serde::{Deserialize, Serialize};
 use tokio::sync::broadcast;
+use axum::http::StatusCode;
 
 use crate::repositories::games::{ServerMsg, domain::{
     enums::{AgentKind, GameState}, traits::{CpuBrain, GameLogic, RoomHandle},
@@ -63,3 +64,5 @@ pub struct LiveRoom {
     pub live: AtomicUsize,
     pub ever_joined: AtomicBool,
 }
+
+pub struct WsError(pub StatusCode, pub String);
