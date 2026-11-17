@@ -7,7 +7,7 @@ use std::{sync::RwLock, time::Instant};
 
 use crate::repositories::httpc::httpc::HttpC;
 use crate::core::env::EnvSetting;
-use crate::repositories::github::models::{
+use crate::repositories::github::structs::{
     Repo, RepoContent, RepoFile, RepoInfo
 };
 

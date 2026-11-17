@@ -1,9 +1,8 @@
-import { wsGameError } from "./outputs.js";
+import { apiErrorLine } from "./outputs.js";
 
 export async function fetchAndPrint(shell, fn, {
         loading = "Carregando... [AGUARDE]",
         onSuccess,
-        onError,
     } = {}) {
 
     const lastPrompt = shell.prompt;
@@ -18,9 +17,10 @@ export async function fetchAndPrint(shell, fn, {
             if (data?.output) shell.print(data.output);
             await onSuccess?.(data);
         } else {
-            const custom = onError?.(status, data);
-            shell.print(custom ??
-                `<span style='color:red;'>[Erro] Servidor respondeu ${status}.</span>`);
+            shell.print(apiErrorLine(
+                data?.status ?? status,
+                data?.message ?? 'erro sem corpo no servidor',
+            ));
         }
 
         return { ok, status, data };
@@ -36,9 +36,5 @@ export async function fetchGameAndPrint(shell, fn, { onSuccess } = {}) {
     return fetchAndPrint(shell, fn, {
         loading: "A comunicar com o servidor...",
         onSuccess,
-        onError: (status, data) => {
-            const t = wsGameError(status, data);
-            return typeof t === 'function' ? t(data) : t;
-        },
     });
 }

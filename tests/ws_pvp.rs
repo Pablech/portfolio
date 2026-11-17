@@ -1,5 +1,6 @@
 use futures::{SinkExt, StreamExt};
 use tokio_tungstenite::tungstenite::Message;
+use serde_json::json;
 
 use site::{
     app::create_router, core::env::EnvSetting, repositories::{
@@ -22,6 +23,16 @@ where
             return txt;
         }
     }
+}
+
+async fn err_tuple(resp: reqwest::Response, code: u16) -> serde_json::Value {
+    assert_eq!(resp.status(), reqwest::StatusCode::from_u16(code).unwrap(),
+        "status HTTP deve refletir o código da tupla");
+    let body: serde_json::Value = resp.json().await.unwrap();
+    assert_eq!(body["code"], code, "corpo deve trazer {code} em code: {body}");
+    assert!(body["message"].as_str().map_or(false, |m| !m.is_empty()),
+        "message não pode vir vazia — é ela que o terminal imprime: {body}");
+    body
 }
 
 async fn wait_status<S, E>(r: &mut S, status: &str) -> (serde_json::Value, String)
@@ -114,8 +125,9 @@ async fn join_room_claim_valido_e_atrasado_fica_fora() {
     assert_eq!(seat["room_id"], room_id);
     assert!(seat["token"].as_str().map_or(false, |t| !t.is_empty()), "token veio");
 
-    let resp = claim(&addr, &room_id, serde_json::json!({})).await;
-    assert_eq!(resp.status(), reqwest::StatusCode::CONFLICT);
+    let e = err_tuple(claim(&addr, &room_id, serde_json::json!({})).await, 403).await;
+    assert!(e["message"].as_str().unwrap().contains("sala") || e["message"].as_str().unwrap().contains("cheia"),
+        "mensagem humana útil: {e}");
 
     let token = seat["token"].as_str().unwrap().to_string();
     let (s, _) = tokio_tungstenite::connect_async(
@@ -125,12 +137,13 @@ async fn join_room_claim_valido_e_atrasado_fica_fora() {
     assert!(first.contains("bob"), "WS aceitou o assento claimeado: {first}");
 }
 
+
 #[tokio::test]
 async fn join_room_figura_em_uso_nao_ocupa_assento() {
     let (addr, room_id, _t1) = spawn_server(false).await;
 
-    let resp = claim(&addr, &room_id, serde_json::json!({"name": "clonado", "fig": "X"})).await;
-    assert_eq!(resp.status(), reqwest::StatusCode::BAD_REQUEST);
+    let e = err_tuple(claim(&addr, &room_id, json!({"name": "clonado", "fig": "X"})).await, 422).await;
+    assert!(e["message"].as_str().unwrap().contains("figura"), "{e}");
 
     let resp = claim(&addr, &room_id, serde_json::json!({"name": "bob", "fig": "&"})).await;
     assert_eq!(resp.status(), 200);
@@ -142,8 +155,8 @@ async fn join_room_figura_em_uso_nao_ocupa_assento() {
 async fn join_room_vs_cpu_nao_tem_assento() {
     let (addr, room_id, _t1) = spawn_server(true).await;
 
-    let resp = claim(&addr, &room_id, serde_json::json!({"name": "intruso"})).await;
-    assert_eq!(resp.status(), reqwest::StatusCode::CONFLICT);
+    let e = err_tuple(claim(&addr, &room_id, json!({"name": "intruso"})).await, 403).await;
+    assert!(e["message"].as_str().unwrap().contains("CPU") || e["message"].as_str().unwrap().contains("cheia"), "{e}");
 }
 
 #[tokio::test]
@@ -180,6 +193,7 @@ async fn chat_chega_pros_dois_e_nao_vaza_token() {
     w2.send(Message::text(format!(
         r#"{{"action":"chat","data":{{"token":"golpista","text":"oi?"}}}}"#))).await.unwrap();
     let (ev, _) = wait_status(&mut r2, "error").await;
+    assert_eq!(ev["code"], 403, "token inválido é ErrorJoin -> 403");
     assert!(ev["message"].as_str().unwrap_or("").contains("token"));
 
     w2.send(Message::text(format!(

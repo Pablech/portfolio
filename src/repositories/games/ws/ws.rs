@@ -16,13 +16,6 @@ use crate::{
 
 fn ser(msg: &ServerMsg) -> String { serde_json::to_string(msg).expect("ServerMsg sempre serializa") }
 fn ser_state(st: &GameState) -> String { serde_json::to_string(st).expect("GameState sempre serializa") }
-fn err_text(e: &GameError) -> String {
-    match e {
-        GameError::ErrorMove(m)
-        | GameError::ErrorJoin(m)
-        | GameError::ErrorValidation(m) => m.clone(),
-    }
-}
 fn de<T: serde::de::DeserializeOwned>(txt: &str) -> Option<T> { serde_json::from_str(txt).ok() }
 
 pub async fn handler(State(state): State<AppState>,
@@ -51,8 +44,9 @@ impl Session {
         let _ = self.out_tx.send(Message::Text(json)).await;
     }
 
-    async fn push_error(&self, message: String, fatal: bool) {
-        self.send(ser(&ServerMsg::Error { message, fatal })).await;
+    async fn push_error(&self, err: &GameError) {
+        let (code, err) = err.as_tuple();
+        self.send(ser(&ServerMsg::Error { code, message: err.to_string() })).await;
     }
 
     async fn push_state(&self, state: GameState, req_id: Option<String>) {
@@ -72,7 +66,9 @@ impl Session {
             }
             Some(Ok(Message::Pong(_))) => Frame::Skip,
             Some(Ok(Message::Binary(_))) => {
-                self.push_error("protocolo aceita apenas texto".into(), false).await;
+                self.push_error(
+                    &GameError::ErrorProtocol("protocolo aceita apenas texto".into())
+                ).await;
                 Frame::Skip
             }
             Some(Ok(Message::Close(_))) | None | Some(Err(_)) => Frame::Close,
@@ -108,7 +104,7 @@ impl Session {
                         { let _ = self.tx.send(ServerMsg::Chat { author, text: text.trim().to_owned() }); }
                     }
                     Ok(_) => {}
-                    Err(e) => self.push_error(err_text(&e), false).await,
+                    Err(e) => self.push_error(&e).await,
                 }
                 Flow::Continue
             }
@@ -119,7 +115,7 @@ impl Session {
                         self.send(ser(&ServerMsg::Quit { name })).await;
                         return Flow::Close;
                     }
-                    Err(e) => self.push_error(err_text(&e), false).await,
+                    Err(e) => self.push_error(&e).await,
                 }
                 Flow::Continue
             }
@@ -132,7 +128,7 @@ impl Session {
                 self.send(ser(&ServerMsg::Joined { name: joined, room_id: self.room_id.clone(), chat })).await;
             }
             Ok(_) => unreachable!("join só devolve JoinInfo"),
-            Err(e) => self.push_error(err_text(&e), false).await,
+            Err(e) => self.push_error(&e).await,
         }
         Flow::Continue
     }
@@ -150,7 +146,7 @@ impl Session {
             Ok(PlayResult::Dead(_)) => {
                 unreachable!("play nunca devolve Dead; Dead é exclusivo do rematch");
             }
-            Err(e) => self.push_error(err_text(&e), false).await,
+            Err(e) => self.push_error(&e).await,
         }
         Flow::Continue
     }
@@ -186,7 +182,7 @@ impl Session {
                 self.hub.remove_room(&self.room_id);
                 return Flow::Close;
             }
-            Err(e) => self.push_error(err_text(&e), false).await,
+            Err(e) => self.push_error(&e).await,
         }
         Flow::Continue
     }
@@ -225,7 +221,9 @@ impl Session {
                     match st {
                         Ok(gs) => sess.on_broadcast(gs, &mut skip_echo).await,
                         Err(broadcast::error::RecvError::Lagged(n)) => {
-                            sess.push_error(format!("atrasou {} estados", n), false).await;
+                            sess.push_error(
+                                &GameError::ErrorProtocol(format!("atrasou {} estados", n))
+                            ).await;
                         }
                         Err(_) => break,
                     }
@@ -237,7 +235,9 @@ impl Session {
                         Frame::Close => break,
                     };
                     let Some(client_msg) = de::<ClientMsg>(&txt) else {
-                        sess.push_error("mensagem inválida".into(), false).await;
+                        sess.push_error(
+                            &GameError::ErrorProtocol("mensagem inválida".into())
+                        ).await;
                         continue;
                     };
                     if sess.dispatch(client_msg, &mut skip_echo).await == Flow::Close { break; }

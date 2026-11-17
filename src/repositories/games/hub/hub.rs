@@ -1,10 +1,9 @@
 use std::{num::NonZeroUsize, sync::{Arc, atomic::{AtomicBool, AtomicUsize, Ordering}}, time::Duration};
-use anyhow::{Error, anyhow};
 use dashmap::DashMap;
 use lru::LruCache;
 use tokio::sync::{Mutex, broadcast};
 
-use crate::repositories::games::{Agent, CpuBrain, GameHub, GameLogic, GameRoom, LiveRoom, RoomHandle, generate_token};
+use crate::repositories::games::{Agent, CpuBrain, GameError, GameHub, GameLogic, GameRoom, LiveRoom, RoomHandle, generate_token};
 
 impl GameHub {
     pub fn new(rgs: u64, ots: u64, sgs: u64) -> Self {
@@ -42,12 +41,12 @@ impl GameHub {
     }
 
     pub fn create_room<L: GameLogic>(self: &Arc<Self>, agents: Vec<Agent>, brains: Vec<Option<Box<dyn CpuBrain<L>>>>)
-        -> Result<(String, String), Error> {
+        -> Result<(String, String), GameError> {
 
         let room_id = generate_token()[..8].to_string();
         let token = agents.first()
             .and_then(|a| a.token.clone())
-            .ok_or_else(|| anyhow!("sala sem agents host com token"))?;
+            .ok_or_else(|| GameError::ErrorJoin("sala sem agents host com token".into()))?;
 
         let (tx, _rx) = broadcast::channel(16);
         let n_agents = agents.len();

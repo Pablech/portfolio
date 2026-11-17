@@ -1,10 +1,7 @@
 use std::sync::Arc;
 
-use anyhow::{Error, anyhow};
-
 use crate::repositories::games::{
-    Agent, AgentKind, CpuBrain, CreatedRoom, GameHub, GameKind, GameLogic, 
-    connect4::{Conn4Table, SmartishBrain}, generate_token, 
+    Agent, AgentKind, CpuBrain, CreatedRoom, GameError, GameHub, GameKind, GameLogic, connect4::{Conn4Table, SmartishBrain}, generate_token, 
 };
 
 pub fn build_agents(host_name: Option<String>, host_fig: Option<char>, vs_cpu: bool, seats: usize) -> Vec<Agent> {
@@ -29,15 +26,15 @@ pub fn build_agents(host_name: Option<String>, host_fig: Option<char>, vs_cpu: b
 }
 
 impl GameKind {
-    pub fn from_str(s: &str) -> Result<Self, Error> {
+    pub fn from_str(s: &str) -> Result<Self, GameError> {
         match s {
             "connect4" => Ok(Self::Connect4),
-            other => Err(anyhow!("jogo desconhecido: {}", other)),
+            other => Err(GameError::ErrorProtocol(format!("jogo desconhecido: {}", other))),
         }
     }
 
     pub fn create(&self, hub: &Arc<GameHub>, host_name: Option<String>, host_fig: Option<char>, vs_cpu: bool)
-        -> Result<CreatedRoom, Error> {
+        -> Result<CreatedRoom, GameError> {
 
         match self {
             Self::Connect4 => {

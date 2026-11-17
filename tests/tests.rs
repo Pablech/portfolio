@@ -190,6 +190,13 @@ mod tests {
         assert!(agents[1].token.is_none(), "p2 nasce SEM token: assento vem do claim");
     }
 
+    #[test]
+    fn as_tuple_e_o_mapa_variante_codigo() {
+        assert_eq!(GameError::ErrorMove("x".into()).as_tuple(), (409, "x"));
+        assert_eq!(GameError::ErrorJoin("t".into()).as_tuple(), (403, "t"));
+        assert_eq!(GameError::ErrorValidation("v".into()).as_tuple(), (422, "v"));
+    }
+
     #[tokio::test]
     async fn test_idempotencia_request_cache() {
         let room = human_room();

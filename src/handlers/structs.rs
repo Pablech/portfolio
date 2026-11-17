@@ -1,5 +1,9 @@
 use serde::{Deserialize, Serialize};
 use askama::Template;
+use axum::{http::StatusCode, response::{IntoResponse, Response}, Json};
+use serde_json::json;
+
+use crate::repositories::games::GameError;
 
 
 #[derive(Serialize, Clone)]
@@ -78,6 +82,8 @@ pub struct ClaimedSeat {
     pub room_id: String,
 }
 
+pub struct ApiError(pub StatusCode, pub String);
+
 impl TerminalRenderable for Project {
     fn header(&self) -> String {
         self.name.to_string()
@@ -108,5 +114,25 @@ impl<'a> TerminalRenderable for SectionContent<'a> {
         } else {
             vec![("".to_string(), self.content.to_string().trim().to_string())]
         }
+    }
+}
+
+impl IntoResponse for ApiError {
+    fn into_response(self) -> Response {
+        let code = self.0.as_u16();
+        (
+            self.0,
+            Json(json!({ "code": code, "message": self.1 })),
+        ).into_response()
+    }
+}
+
+impl From<GameError> for ApiError {
+    fn from(e: GameError) -> Self {
+        let (code, err) = e.as_tuple();
+        ApiError(
+            StatusCode::from_u16(code).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+            err.to_string(),
+        )
     }
 }

@@ -1,3 +1,5 @@
+import { escapeHtml } from "../core/utils.js";
+
 function makePrompt(dir) {
     return `[pablech@portfolio ${dir}]$`;
 }
@@ -17,17 +19,15 @@ export function cmdError(value, suggestion = null, missing = null) {
 }
 
 export function errNote(msg) {
-    return `<span style='color:red;'>[Erro] ${msg}</span>`;
+    return `<span style='color:red;'>[Erro]</span> ${msg}`;
 }
 
-export function wsGameError(status, data) {
-    const GAME_STATUS = {
-        400: (data) => `<span style='color:red;'>${data?.message ?? "Pedido inválido."}</span>`,
-        404: `<span style='color:red;'>[Erro] Sala inexistente (expirou?). Pede ao host um convite novo.</span>`,
-        409: `<span style='color:red;'>[Erro] Sala cheia ou partida solo (vs CPU).</span>`,
-        422: `<span style='color:red;'>[Erro] Pedido malformado — confere os parâmetros.</span>`,
-    };
-    return GAME_STATUS[status];
+export function apiErrorLine(code, message) {
+    return `<span style='color:red;'>[Erro]</span> ${code} ${escapeHtml(message)}`;
+}
+
+export function offlineError(message) {
+    return `<span style='color:red;'>[offline]</span> ${escapeHtml(message)}`;
 }
 
 export function renderGameState(shell, st) {
