@@ -10,11 +10,12 @@ const CELLS: usize = 42;
 pub struct Conn4Table {
     #[serde_as(as = "[_; CELLS]")] 
     pub cells: [Option<u8>; CELLS],
+    pub last_mv: Option<usize>,
 }
 
 impl Default for Conn4Table {
     fn default() -> Self {
-        Self { cells: [None; CELLS] }
+        Self { cells: [None; CELLS], last_mv: None }
     }
 }
 
@@ -56,6 +57,7 @@ impl GameLogic for Conn4Table {
             let indx = Self::cell_indx(row, mv);
             if self.cells[indx].is_none() {
                 self.cells[indx] = Some(player);
+                self.last_mv = Some(row * 7 + mv);
                 return Ok(());
             }
         }
@@ -76,12 +78,19 @@ impl GameLogic for Conn4Table {
     }
 
     fn output(&self, players: &[crate::repositories::games::Agent]) -> String {
-        let fig_of = |c: Option<u8>| -> String {
-            match c {
+        const LAST: &str = "red";
+
+        let fig_of = |c: Option<u8>, last: bool| -> String {
+            let fig = match c {
                 None => format!("{:^3}", " "),
                 Some(1) => format!("{:^3}", players[0].fig),
                 Some(2) => format!("{:^3}", players[1].fig),
                 _ => format!("{}", "???"),
+            };
+            if last {
+                format!("<span style=\"color:{LAST};\">{fig}</span>")
+            } else {
+                fig.to_string()
             }
         };
 
@@ -89,7 +98,9 @@ impl GameLogic for Conn4Table {
         for row in 0..6 {
             board.push('|');
             for col in 0..7 {
-                board.push_str(&fig_of(self.cells[row * 7 + col]));
+                let indx = row * 7 + col;
+                let last = self.last_mv == Some(indx);
+                board.push_str(&fig_of(self.cells[indx], last));
                 board.push('|');
             }
             board.push('\n');
