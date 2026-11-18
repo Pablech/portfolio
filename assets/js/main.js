@@ -6,6 +6,7 @@ import { setOnNew, setOnExit, openGamesShell, setSpawner } from "./commands/kern
 import { restoreTheme } from "./commands/theme.js";
 import { Shell } from "./core/shell.js";
 import { mountChat } from "./core/chat.js";
+import { closeAndQuit } from "./commands/libs/games.js";
 
 const desktop = document.getElementById('desktop');
 const shells = [];
@@ -62,7 +63,8 @@ export function closeTerminal(shell) {
     host.remove();
     sep?.remove();
 
-    shell.state.activeWs?.close();
+    const ws = shell.state.activeWs;
+    if (ws && ws.readyState === WebSocket.OPEN && shell.state.gameToken) { closeAndQuit(shell); }
 
     shells.splice(shells.indexOf(shell), 1);
 

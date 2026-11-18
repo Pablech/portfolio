@@ -18,6 +18,20 @@ export function resumeInput(shell, raw) {
     }
 }
 
+export function closeAndQuit(shell) {
+    const ws = shell.state.activeWs;
+    if (!ws || ws.readyState !== WebSocket.OPEN || !shell.state.gameToken) return;
+
+    shell.state.lastOutputState = null;
+    shell.state.lastTurnLine = null;
+    shell.state.inGame = false;
+    clearSession();
+
+    ws.send(JSON.stringify({ action: 'quit', data: { token: shell.state.gameToken } }));
+    ws.onclose = null;
+    ws.close();
+}
+
 export function routInput(shell, value) {
     const raw = value.trim();
 
@@ -101,17 +115,7 @@ gamesRegistry['rematch'] = async (parsed, shell) => {
     }));
 };
 
-gamesRegistry['quit'] = async (_parsed, shell) => {
-    const sess = requireGame(shell);
-    if (!sess) return;
-    shell.state.lastOutputState = null;
-    shell.state.lastTurnLine = null;
-    clearSession();
-    sess.ws.send(JSON.stringify({
-        action: 'quit',
-        data: { token: sess.token },
-    }));
-};
+gamesRegistry['quit'] = async (_parsed, shell) => closeAndQuit(shell);
 
 gamesRegistry['reconnect'] = async (_parsed, shell) => {
     if (shell.state.inGame) { shell.print('Já estas em jogo'); return; }
