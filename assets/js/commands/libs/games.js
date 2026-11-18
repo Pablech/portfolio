@@ -38,7 +38,7 @@ export function routInput(shell, value) {
     }
 
     if (!shell.state.activeWs || shell.state.activeWs.readyState !== WebSocket.OPEN) {
-        shell.print('<span style="color:red">sem conexão com a sala</span>');
+        shell.print('<span style="color:red">[erro]</span> sem conexão com a sala');
         return;
     }
     if (!shell.state.gameToken) { shell.print('sem sessão ativa'); return; }
@@ -104,6 +104,8 @@ gamesRegistry['rematch'] = async (parsed, shell) => {
 gamesRegistry['quit'] = async (_parsed, shell) => {
     const sess = requireGame(shell);
     if (!sess) return;
+    shell.state.lastOutputState = null;
+    shell.state.lastTurnLine = null;
     clearSession();
     sess.ws.send(JSON.stringify({
         action: 'quit',

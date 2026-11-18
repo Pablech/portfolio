@@ -40,6 +40,9 @@ export function renderGameState(shell, st) {
         if (shell.state.boardsPrinted > 0) shell.clear();
         shell.state.boardsPrinted++;
         shell.print(d.output);
+        shell.state.lastOutputState = d.output;
+        shell.state.lastTurnLine = st.continue?.next_player
+            ? `Turno de: ${st.continue.next_player}` : null;
     }
 
     if (st.continue?.next_player) {

@@ -25,6 +25,8 @@ export class Shell {
             myName: null,
             gameRoom: null,
             resume: null,
+            lastOutputState: null,
+            lastTurnLine: null,
         };
 
         this.wizardData = { from: '', subject: '', body: '' };
@@ -45,5 +47,11 @@ export class Shell {
 
     setPrompt(str) { this.promptLabel.textContent = str; }
     focus()        { this.input.focus({ preventScroll: true }); }
-    clear()        { this.output.innerHTML = ''; }
+    clear()        {
+        this.output.innerHTML = '';
+        if (this.state.inGame) {
+            if (this.state.lastOutputState) this.print(this.state.lastOutputState);
+            if (this.state.lastTurnLine) this.print(this.state.lastTurnLine);
+        }
+    }
 }
