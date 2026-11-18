@@ -1,6 +1,5 @@
 import { renderGameState, apiErrorLine, offlineError } from "../ui/outputs.js";
-import { escapeHtml, time } from "./utils.js";
-import { openChat, printChat, closeChat } from "./chat.js";
+import { openChat, printChat, closeChat, chatLine, chatServer } from "./chat.js";
 import { setTicket, clearTicket, saveSession, clearSession } from "./sessionGame.js";
 
 const wsProto = () => (window.location.protocol === 'https:' ? 'wss:' : 'ws:');
