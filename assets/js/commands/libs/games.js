@@ -69,6 +69,9 @@ export function routInput(shell, value) {
 
 gamesRegistry['create'] = async (parsed, shell) => {
     const { flags } = parsed;
+
+    if (shell.state.inGame) { shell.print('Já estas em jogo — quit antes de criar outra sala.'); return; }
+
     const vsCpu = flags.mode !== 'pvp';
     const body = {
         game: flags.game || 'connect4',
@@ -93,6 +96,7 @@ gamesRegistry['create'] = async (parsed, shell) => {
 
 gamesRegistry['join'] = async (parsed, shell) => {
     const { flags } = parsed;
+    if (shell.state.inGame) { shell.print('Já estas em jogo — quit antes de entrar noutra sala.'); return; }
 
     await fetchGameAndPrint(shell,
         () => fetchJoinGame(flags.room, { name: flags.name, fig: flags.fig }),
