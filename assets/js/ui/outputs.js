@@ -37,7 +37,7 @@ export function renderGameState(shell, st) {
               st.rematch_declined || st;
 
     if (d.output) {
-        if (shell.state.boardsPrinted > 0) shell.clear();
+        if (shell.state.boardsPrinted > 0) shell.clear(false);
         shell.state.boardsPrinted++;
         shell.print(d.output);
         shell.state.lastOutputState = d.output;

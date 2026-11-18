@@ -45,11 +45,11 @@ export class Shell {
         if (!window.getSelection().toString()) this.root.scrollTop = this.root.scrollHeight;
     }
 
-    setPrompt(str) { this.promptLabel.textContent = str; }
-    focus()        { this.input.focus({ preventScroll: true }); }
-    clear()        {
+    setPrompt(str)       { this.promptLabel.textContent = str; }
+    focus()              { this.input.focus({ preventScroll: true }); }
+    clear(replay = true) {
         this.output.innerHTML = '';
-        if (this.state.inGame) {
+        if (replay && this.state.inGame) {
             if (this.state.lastOutputState) this.print(this.state.lastOutputState);
             if (this.state.lastTurnLine) this.print(this.state.lastTurnLine);
         }
