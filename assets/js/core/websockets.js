@@ -47,8 +47,12 @@ export function startGame(shell, roomId, token) {
         } else if (msg.status === 'chat') {
             printChat(shell, chatLine(msg.author, msg.text));
         } else if (msg.status === 'left') {
+            shell.state.lastTurnLine = null;
+            shell.state.lastOutputState = null;
             printChat(shell, chatServer(`${msg.name} saiu da sala`));
         } else if (msg.status === 'quit') {
+            shell.state.lastOutputState = null;
+            shell.state.lastTurnLine = null;
             clearSession();
             clearTicket(shell);
         }
