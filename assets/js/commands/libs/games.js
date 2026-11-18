@@ -3,6 +3,7 @@ import { fetchCreateGame, fetchJoinGame } from "../../api/api.js";
 import { generateReqId } from "../../core/utils.js";
 import { startGame, requireGame } from "../../core/websockets.js";
 import { nextReqId, clearSession, loadSession } from "../../core/sessionGame.js";
+import { closeChat } from "../../core/chat.js";
 
 export const gamesRegistry = {};
 
@@ -26,6 +27,7 @@ export function closeAndQuit(shell) {
     shell.state.lastTurnLine = null;
     shell.state.inGame = false;
     clearSession();
+    closeChat(shell);
 
     ws.send(JSON.stringify({ action: 'quit', data: { token: shell.state.gameToken } }));
     ws.onclose = null;
