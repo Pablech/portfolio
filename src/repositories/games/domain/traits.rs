@@ -7,10 +7,11 @@ pub trait GameLogic: Send + Sync + 'static {
     const SEATS: usize;
     fn new() -> Self where Self: Sized;
     fn legal_moves(&self) -> Vec<usize>;
-    fn output(&self, players: &[Agent]) -> String;
+    fn output(&self, players: &[Agent], seat: &Option<usize>) -> String;
     fn place(&mut self, mv: usize, player: u8) -> Result<(), GameError>;
     fn check_win(&self, fig: u8) -> bool;
     fn check_draw(&self) -> bool;
+    fn shared_output(&self) -> bool;
 }
 
 pub trait CpuBrain<L: GameLogic>: Send + Sync + 'static {
@@ -25,7 +26,7 @@ pub trait RoomHandle: Send + Sync {
     async fn claim(&self, name: Option<String>, fig: Option<char>) -> Result<ClaimedSeat, GameError>;
     async fn snapshot(&self) -> GameState;
     async fn rematch_cycle(&self) -> u64;
-    async fn timeout_rematch(&self, cycle: u64) -> Option<GameState>;
+    async fn timeout_rematch(&self, cycle: u64) -> Option<(usize, String, GameState)>;
     async fn chat(&self, token: &str, text: &str) -> Result<String, GameError>;
     async fn leave(&self, token: &str) -> Result<String, GameError>;
     async fn quit(&self, token: &str) -> Result<String, GameError>;

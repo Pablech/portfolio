@@ -77,8 +77,10 @@ impl GameLogic for Conn4Table {
         self.cells.iter().all(|c| c.is_some())
     }
 
-    fn output(&self, players: &[crate::repositories::games::Agent]) -> String {
+    fn output(&self, players: &[crate::repositories::games::Agent], seat: &Option<usize>) -> String {
         const LAST: &str = "red";
+
+        let _ = seat;
 
         let fig_of = |c: Option<u8>, last: bool| -> String {
             let fig = match c {
@@ -112,5 +114,9 @@ impl GameLogic for Conn4Table {
             players[1].name, players[1].fig,
             board
         )
+    }
+
+    fn shared_output(&self) -> bool {
+        true
     }
 }

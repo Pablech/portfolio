@@ -1,14 +1,11 @@
-use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
-
-use crate::repositories::games::WsError;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "snake_case")]
 pub enum MoveOutcome {
-    Continue { output: String, next_player: String },
-    Win { output: String, winner: String },
-    Draw { output: String },
+    Continue { output: Vec<String>, next_player: String },
+    Win { output: Vec<String>, winner: String },
+    Draw { output: Vec<String> },
     RematchPending { who: String },
     RematchDeclined { by: String },
 }
@@ -25,7 +22,7 @@ pub enum GameError {
 #[derive(Debug, Serialize, Clone)]
 #[serde(untagged)]
 pub enum GameState {
-    JoinInfo { joined: String, room_id: String, chat: bool },
+    JoinInfo { joined: String, room_id: String, chat: bool, seat: usize },
     State(MoveOutcome),
     Error(GameError),
 }
@@ -61,46 +58,8 @@ pub enum AgentKind {
 pub enum PlayResult {
     Fresh(GameState),
     Replayed(GameState),
-    Dead(GameState),
 }
 
 pub enum GameKind {
     Connect4,
-}
-
-impl GameError {
-    pub fn code(&self) -> u16 {
-        match self {
-            GameError::ErrorJoin(_) => 403,
-            GameError::ErrorMove(_) => 409,
-            GameError::ErrorValidation(_) => 422,
-            GameError::ErrorNotFound(_) => 404,
-            GameError::ErrorProtocol(_) => 400,
-            
-        }
-    }
-
-    pub fn erro(&self) -> &str {
-        match self {
-            GameError::ErrorJoin(m) => m,
-            GameError::ErrorMove(m) => m,
-            GameError::ErrorValidation(m) => m,
-            GameError::ErrorNotFound(m) => m,
-            GameError::ErrorProtocol(m) => m,
-        }
-    }
-
-    pub fn as_tuple(&self) -> (u16, &str) {
-        (self.code(), self.erro())
-    }
-}
-
-impl From<GameError> for WsError {
-    fn from(e: GameError) -> Self {
-        let (code, err) = e.as_tuple();
-        WsError(
-            StatusCode::from_u16(code).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR), 
-            err.to_string(),
-        )
-    }
 }

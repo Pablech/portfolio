@@ -37,6 +37,40 @@ mod tests {
         })
     }
 
+    struct AsymmetricMockGame {
+    views: Vec<String>,
+}
+
+    impl GameLogic for AsymmetricMockGame {
+        const SEATS: usize = 2;
+        fn new() -> Self {
+            Self {
+                views: vec!["VISAO_SECRETA_P0".into(), "VISAO_SECRETA_P1".into()],
+            }
+        }
+        fn legal_moves(&self) -> Vec<usize> {
+            vec![0]
+        }
+        fn place(&mut self, _col: usize, _player: u8) -> Result<(), GameError> {
+            Ok(())
+        }
+        fn check_win(&self, _player: u8) -> bool {
+            false
+        }
+        fn check_draw(&self) -> bool {
+            false
+        }
+        fn shared_output(&self) -> bool {
+            false
+        }
+        fn output(&self, _agents: &[Agent], seat: &Option<usize>) -> String {
+            match seat {
+                Some(i) => self.views.get(*i).cloned().unwrap_or_default(),
+                None => String::new(),
+            }
+        }
+    }
+
     #[test]
     fn empate_total_sem_vencedor() {
         let mut t = Conn4Table::new();
@@ -229,5 +263,88 @@ mod tests {
             other => panic!("req_id de erro não pode estar cacheado: {:?}", other),
         };
         assert_eq!(st3, "alice", "bob jogou de verdade; turno voltou pra alice");
+    }
+
+    #[test]
+    fn for_seat_modo_compartilhado_entrega_uma_string_para_todos() {
+        let st = GameState::State(MoveOutcome::Continue {
+            output: vec!["TABULEIRO_UNICO".into()],
+            next_player: "bob".into(),
+        });
+
+        let p0 = st.for_seat(0);
+        let p1 = st.for_seat(1);
+
+        match (p0, p1) {
+            (
+                GameState::State(MoveOutcome::Continue { output: o0, .. }),
+                GameState::State(MoveOutcome::Continue { output: o1, .. }),
+            ) => {
+                assert_eq!(o0, vec!["TABULEIRO_UNICO"]);
+                assert_eq!(o1, vec!["TABULEIRO_UNICO"]);
+            }
+            other => panic!("esperado Continue: {:?}", other),
+        }
+    }
+
+    #[test]
+    fn for_seat_modo_assimetrico_isola_visao_por_assento() {
+        let st = GameState::State(MoveOutcome::Continue {
+            output: vec!["SEGREDO_0".into(), "SEGREDO_1".into()],
+            next_player: "alice".into(),
+        });
+
+        let GameState::State(MoveOutcome::Continue { output: o0, .. }) = st.for_seat(0) else {
+            panic!("esperado Continue para seat 0");
+        };
+        let GameState::State(MoveOutcome::Continue { output: o1, .. }) = st.for_seat(1) else {
+            panic!("esperado Continue para seat 1");
+        };
+
+        assert_eq!(o0, vec!["SEGREDO_0"]);
+        assert_eq!(o1, vec!["SEGREDO_1"]);
+        assert!(!o0[0].contains("SEGREDO_1"));
+        assert!(!o1[0].contains("SEGREDO_0"));
+    }
+
+    #[tokio::test]
+    async fn outputs_respeita_shared_output_false_na_sala() {
+        let room = Mutex::new(GameRoom {
+            room_id: "shiproom".into(),
+            game: AsymmetricMockGame::new(),
+            agents: human_agents(),
+            turn: 0,
+            finished: false,
+            brains: vec![None, None],
+            request_cache: LruCache::new(NonZeroUsize::new(10).unwrap()),
+            rematch_votes: vec![false; 2],
+            round: 0,
+            last_chat: vec![None; 2],
+            last_left: vec![None; 2],
+            seat_grace: Duration::from_secs(180),
+        });
+
+        let st = room.snapshot().await;
+        let GameState::State(MoveOutcome::Continue { output, .. }) = st.for_seat(1) else {
+            panic!("esperado Continue");
+        };
+        assert_eq!(output, vec!["VISAO_SECRETA_P1"]);
+    }
+
+    #[tokio::test]
+    async fn chat_valida_vazio_tamanho_e_rate_limit() {
+        let room = human_room();
+
+        let err_empty = room.chat("tok-p1", "   ").await.unwrap_err();
+        assert!(matches!(err_empty, GameError::ErrorValidation(_)));
+
+        let long_msg = "a".repeat(241);
+        let err_long = room.chat("tok-p1", &long_msg).await.unwrap_err();
+        assert!(matches!(err_long, GameError::ErrorValidation(_)));
+
+        assert_eq!(room.chat("tok-p1", "oi").await.unwrap(), "alice");
+
+        let err_rate = room.chat("tok-p1", "de novo").await.unwrap_err();
+        assert!(matches!(err_rate, GameError::ErrorValidation(ref m) if m.contains("rate limit")));
     }
 }

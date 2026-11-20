@@ -11,18 +11,22 @@ use site::{
 async fn wait_piece<S, E>(r: &mut S, piece: &str) -> String
 where
     S: futures::Stream<Item = Result<Message, E>> + Unpin,
-    E: std::fmt::Debug, 
+    E: std::fmt::Debug,
 {
-    let needle = format!("| {} ", piece);
-    loop {
-        let msg = r.next().await
-            .expect("stream fechou antes do estado esperado") 
-            .expect("erro no websocket"); 
-        let txt = msg.to_string();
-        if txt.contains(&needle) {
-            return txt;
+    let needle = format!("> {} <", piece);
+    tokio::time::timeout(std::time::Duration::from_secs(5), async {
+        loop {
+            let msg = r.next().await
+                .expect("stream fechou antes do estado esperado")
+                .expect("erro no websocket");
+            let txt = msg.to_string();
+            if txt.contains(&needle) {
+                return txt;
+            }
         }
-    }
+    })
+    .await
+    .expect("timeout aguardando peça no websocket")
 }
 
 async fn err_tuple(resp: reqwest::Response, code: u16) -> serde_json::Value {
@@ -202,4 +206,69 @@ async fn chat_chega_pros_dois_e_nao_vaza_token() {
     let (v2b, _) = wait_status(&mut r2, "chat").await;
     assert_eq!(v1b["author"], "bob", "próximo chat é do bob — o inválido não entrou no canal");
     assert_eq!(v1b, v2b);
+}
+
+#[tokio::test]
+async fn ws_sem_token_ou_invalido_e_rejeitado_com_401() {
+    let (addr, room_id, _t1) = spawn_server(false).await;
+
+    let err_no_token = tokio_tungstenite::connect_async(
+        format!("ws://{}/games/ws/{}", addr, room_id)
+    ).await.unwrap_err();
+
+    match err_no_token {
+        tokio_tungstenite::tungstenite::Error::Http(resp) => {
+            assert_eq!(resp.status(), 401);
+        }
+        other => panic!("esperado HTTP 401 sem token, veio: {:?}", other),
+    }
+
+    let err_bad_token = tokio_tungstenite::connect_async(
+        format!("ws://{}/games/ws/{}?token=invalido", addr, room_id)
+    ).await.unwrap_err();
+
+    match err_bad_token {
+        tokio_tungstenite::tungstenite::Error::Http(resp) => {
+            assert_eq!(resp.status(), 401);
+        }
+        other => panic!("esperado HTTP 401 com token inválido, veio: {:?}", other),
+    }
+}
+
+#[tokio::test]
+async fn req_id_vai_apenas_para_quem_executou_a_jogada() {
+    let (addr, room_id, t1) = spawn_server(false).await;
+
+    let resp = claim(&addr, &room_id, json!({"name": "bob", "fig": "&"})).await;
+    assert_eq!(resp.status(), 200);
+    let t2 = resp.json::<serde_json::Value>().await.unwrap()["token"]
+        .as_str().unwrap().to_string();
+
+    let (s1, _) = tokio_tungstenite::connect_async(
+        format!("ws://{}/games/ws/{}?token={}", addr, room_id, t1)
+    ).await.unwrap();
+    let (s2, _) = tokio_tungstenite::connect_async(
+        format!("ws://{}/games/ws/{}?token={}", addr, room_id, t2)
+    ).await.unwrap();
+
+    let (mut w1, mut r1) = s1.split();
+    let (_w2, mut r2) = s2.split();
+
+    // Consome mensagens iniciais (Joined / snapshot inicial)
+    let _ = r1.next().await;
+    let _ = r2.next().await;
+
+    w1.send(Message::text(format!(
+        r#"{{"action":"play","data":{{"token":"{}","input":"4","req_id":"req-99"}}}}"#,
+        t1
+    ))).await.unwrap();
+
+    let st1 = wait_piece(&mut r1, "X").await;
+    let st2 = wait_piece(&mut r2, "X").await;
+
+    let v1: serde_json::Value = serde_json::from_str(&st1).unwrap();
+    let v2: serde_json::Value = serde_json::from_str(&st2).unwrap();
+
+    assert_eq!(v1["req_id"], "req-99");
+    assert!(v2["req_id"].is_null(), "outro assento não deve receber req_id do ator: {v2}");
 }
