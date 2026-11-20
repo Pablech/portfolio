@@ -103,7 +103,7 @@ impl <L: GameLogic> GameRoom<L> {
         let name = self.agents[missing].name.clone();
         let state = GameState::State(MoveOutcome::RematchDeclined { by: name.clone() });
         let token = self.agents[missing].token.clone()
-            .expect("invariante: expulso tem token (garantido pelo predicado do position)");;
+            .expect("invariante: expulso tem token (garantido pelo predicado do position)");
         Some((missing, name, token, state))
     }
 
