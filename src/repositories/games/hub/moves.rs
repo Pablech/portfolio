@@ -102,8 +102,9 @@ impl <L: GameLogic> GameRoom<L> {
 
         let name = self.agents[missing].name.clone();
         let state = GameState::State(MoveOutcome::RematchDeclined { by: name.clone() });
-        let token = self.agents[missing].token.clone();
-        Some((missing, name, token?, state))
+        let token = self.agents[missing].token.clone()
+            .expect("invariante: expulso tem token (garantido pelo predicado do position)");;
+        Some((missing, name, token, state))
     }
 
     fn init_rematch_votes(&mut self) {

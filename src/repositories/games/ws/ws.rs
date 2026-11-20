@@ -153,6 +153,7 @@ impl Session {
                         tokio::time::sleep(Duration::from_secs(60)).await;
                         if let Some((kicked, name, token, st)) = room.timeout_rematch(cycle).await {
                             live.broadcast_state(&st, None).await;
+                            let _ = live.tx.send(ServerMsg::Left { name: name.clone() });
                             let _ = room.quit(&token).await;
                             live.send_to_seat(kicked, &ServerMsg::Quit { name }).await;
                             live.detach_seat(kicked);
