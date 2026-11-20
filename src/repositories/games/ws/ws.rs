@@ -10,12 +10,12 @@ use tokio::sync::{broadcast, mpsc};
 
 use crate::{
     repositories::games::{
-        ClientMsg, Flow, Frame, GameError, GameHub, GameState, LiveRoom, MoveOutcome, PlayResult, ServerMsg, Session, WsParams,
+        ClientMsg, Flow, Frame, GameError, GameHub, GameState, LiveRoom, 
+        MoveOutcome, PlayResult, ServerMsg, Session, WsParams,
     }, state::AppState
 };
 
 fn ser(msg: &ServerMsg) -> String { serde_json::to_string(msg).expect("ServerMsg sempre serializa") }
-fn ser_state(st: &GameState) -> String { serde_json::to_string(st).expect("GameState sempre serializa") }
 fn de<T: serde::de::DeserializeOwned>(txt: &str) -> Option<T> { serde_json::from_str(txt).ok() }
 
 pub async fn handler(State(state): State<AppState>,
@@ -26,22 +26,32 @@ pub async fn handler(State(state): State<AppState>,
         return StatusCode::NOT_FOUND.into_response();
     };
 
-    if let Some(ref token) = params.token {
-        if live.handle.join(token, None).await.is_err() {
-            state.games.exit(&room_id, &live);
-            return StatusCode::UNAUTHORIZED.into_response();
-        }
-    }
+    let Some(token) = params.token else {
+        state.games.exit(&room_id, &live);
+        return StatusCode::UNAUTHORIZED.into_response();
+    };
+
+    let Ok(GameState::JoinInfo { joined, chat, seat, .. }) = live.handle.join(&token, None).await else {
+        state.games.exit(&room_id, &live);
+        return StatusCode::UNAUTHORIZED.into_response();
+    };
 
     let rx = live.tx.subscribe();
     let hub = state.games.clone();
 
-    ws.on_upgrade(move |socket| Session::connection(hub, live, room_id, params.token, rx, socket))
+    ws.on_failed_upgrade({
+        let hub = hub.clone();
+        let live = live.clone();
+        let room_id = room_id.clone();
+        move |_err| hub.exit(&room_id, &live)
+    }).on_upgrade(move |socket| {
+        Session::connection(hub, live, room_id, token, seat, joined, chat, rx, socket)
+    })
 }
 
 impl Session {
     async fn send(&self, json: String) {
-        let _ = self.out_tx.send(Message::Text(json)).await;
+        let _ = self.out_tx.send(json).await;
     }
 
     async fn push_error(&self, err: &GameError) {
@@ -53,15 +63,11 @@ impl Session {
         self.send(ser(&ServerMsg::State { state, req_id })).await;
     }
 
-    async fn broadcast(&self, state: &GameState) {
-        let _ = self.tx.send(ServerMsg::State { state: state.clone(), req_id: None });
-    }
-
     async fn on_frame(&self, msg: Option<Result<Message, axum::Error>>) -> Frame {
         match msg {
             Some(Ok(Message::Text(txt))) => Frame::Text(txt),
             Some(Ok(Message::Ping(p))) => {
-                let _ = self.out_tx.send(Message::Pong(p)).await;
+                let _ = self.pong_tx.send(p.to_vec()).await;
                 Frame::Skip
             }
             Some(Ok(Message::Pong(_))) => Frame::Skip,
@@ -75,35 +81,24 @@ impl Session {
         }
     }
 
-    async fn on_broadcast(&self, msg: ServerMsg, skip_echo: &mut Option<String>) {
-        match msg {
-            ServerMsg::State { state, .. } => {
-                let state_json = ser_state(&state);
-                if skip_echo.as_deref() == Some(state_json.as_str()) {
-                    *skip_echo = None;
-                } else {
-                    self.push_state(state, None).await;
-                }
-            }
-            other => { self.send(ser(&other)).await; }
-        }
+    async fn on_broadcast(&self, msg: ServerMsg) {
+        self.send(ser(&msg)).await;
     }
 
-    async fn dispatch(&self, msg: ClientMsg, skip_echo: &mut Option<String>) -> Flow {
+    async fn dispatch(&self, msg: ClientMsg) -> Flow {
         match msg {
             ClientMsg::Join { token, req_id } => self.on_join(&token, req_id).await,
             ClientMsg::Play { token, input, req_id } => {
-                self.on_play(&token, &input, req_id, skip_echo).await
+                self.on_play(&token, &input, req_id).await
             }
             ClientMsg::Rematch { token, accept, req_id } => {
-                self.on_rematch(&token, accept, req_id, skip_echo).await
+                self.on_rematch(&token, accept, req_id).await
             }
             ClientMsg::Chat { token, text, ..} => {
                 match self.room.chat(&token, &text).await {
-                    Ok(author) if !author.is_empty() => {
+                    Ok(author) => {
                         { let _ = self.tx.send(ServerMsg::Chat { author, text: text.trim().to_owned() }); }
                     }
-                    Ok(_) => {}
                     Err(e) => self.push_error(&e).await,
                 }
                 Flow::Continue
@@ -133,93 +128,94 @@ impl Session {
         Flow::Continue
     }
 
-    async fn on_play(&self, token: &str, input: &str, req_id: Option<String>, skip_echo: &mut Option<String>,) -> Flow {
+    async fn on_play(&self, token: &str, input: &str, req_id: Option<String>,) -> Flow {
         match self.room.play(token, input, req_id.as_deref()).await {
             Ok(PlayResult::Fresh(st)) => {
-                *skip_echo = Some(ser_state(&st));
-                self.broadcast(&st).await;
-                self.push_state(st, req_id).await;
+                self.live.broadcast_state(&st, Some((self.seat, req_id))).await;
             }
             Ok(PlayResult::Replayed(st)) => {
-                self.push_state(st, req_id).await;
-            }
-            Ok(PlayResult::Dead(_)) => {
-                unreachable!("play nunca devolve Dead; Dead é exclusivo do rematch");
+                self.push_state(st.for_seat(self.seat), req_id).await;
             }
             Err(e) => self.push_error(&e).await,
         }
         Flow::Continue
     }
 
-    async fn on_rematch(&self, token: &str, accept: bool, req_id: Option<String>, skip_echo: &mut Option<String>) -> Flow {
+    async fn on_rematch(&self, token: &str, accept: bool, req_id: Option<String>) -> Flow {
         match self.room.rematch(token, accept, req_id.as_deref()).await {
             Ok(PlayResult::Fresh(st)) => {
                 if matches!(st, GameState::State(MoveOutcome::RematchPending { .. })) {
                     let room = self.room.clone();
-                    let tx = self.tx.clone();
-                    let hub = self.hub.clone();
-                    let room_id = self.room_id.clone();
+                    let live  = self.live.clone();
                     let cycle = room.rematch_cycle().await;
 
                     tokio::spawn(async move {
                         tokio::time::sleep(Duration::from_secs(60)).await;
-                        if let Some(declined_state) = room.timeout_rematch(cycle).await {
-                            let _ = tx.send(ServerMsg::State { state: declined_state, req_id: None });
-                            hub.remove_room(&room_id);
+                        if let Some((kicked, name, st)) = room.timeout_rematch(cycle).await {
+                            live.broadcast_state(&st, None).await;
+                            live.send_to_seat(kicked, &ServerMsg::Quit { name }).await;
+                            live.detach_seat(kicked);
                         }
                     });
                 }
-                *skip_echo = Some(ser_state(&st));
-                self.broadcast(&st).await;
-                self.push_state(st, req_id).await;
+                
+                self.live.broadcast_state(&st, Some((self.seat, req_id))).await;
             }
             Ok(PlayResult::Replayed(st)) => {
-                self.push_state(st, req_id).await;
-            }
-            Ok(PlayResult::Dead(st)) => {
-                self.broadcast(&st).await;
-                self.push_state(st, req_id).await;
-                self.hub.remove_room(&self.room_id);
-                return Flow::Close;
+                self.push_state(st.for_seat(self.seat), req_id).await;
             }
             Err(e) => self.push_error(&e).await,
         }
         Flow::Continue
     }
 
-    async fn connection(hub: Arc<GameHub>, live: Arc<LiveRoom>, room_id: String, token: Option<String>,
-        mut rx: broadcast::Receiver<ServerMsg>, socket: WebSocket) {
+    async fn connection(hub: Arc<GameHub>, live: Arc<LiveRoom>, room_id: String, token: String, seat: usize,
+        joined: String, chat: bool, mut rx: broadcast::Receiver<ServerMsg>, socket: WebSocket) {
 
         let (mut sink, mut stream) = socket.split();
 
-        if let Some(ref tok) = token {
-            if let Ok(GameState::JoinInfo { joined, chat, .. }) = live.handle.join(tok, None).await {
-                let _ = live.tx.send(ServerMsg::Joined { name: joined, room_id: room_id.clone(), chat });
-                let st = live.handle.snapshot().await;
-                let _ = live.tx.send(ServerMsg::State { state: st, req_id: None });
-            }
-        }
+        let (out_tx, mut out_rx) = mpsc::channel::<String>(16);
+        let (pong_tx, mut pong_rx) = mpsc::channel::<Vec<u8>>(4);
 
-        let (out_tx, mut out_rx) = mpsc::channel::<Message>(16);
         let writer = tokio::spawn(async move {
-            while let Some(msg) = out_rx.recv().await {
-                if sink.send(msg).await.is_err() { break; }
+            loop {
+                tokio::select! {
+                    Some(json) = out_rx.recv() => {
+                        if sink.send(Message::Text(json)).await.is_err() { break; }
+                    }
+                    Some(payload) = pong_rx.recv() => {
+                        if sink.send(Message::Pong(payload.into())).await.is_err() { break; }
+                    }
+                    else => break,
+                }
             }
+            let _ = sink.close().await;
         });
+
+        live.attach_seat(seat, out_tx.clone());
+        
+        let _ = out_tx.send(ser(&ServerMsg::Joined { name: joined.clone(), room_id: room_id.clone(), chat })).await;
+
+        let st = live.handle.snapshot().await;
+        let _ = out_tx.send(ser(&ServerMsg::State { state: st.for_seat(seat), req_id: None })).await;
+
+        for (other_seat, tx) in live.seat_targets(seat) {
+            let _ = tx.send(ser(&ServerMsg::Joined { name: joined.clone(), room_id: room_id.clone(), chat })).await;
+            let _ = tx.send(ser(&ServerMsg::State { state: st.for_seat(other_seat), req_id: None })).await;
+        }
 
         let sess = Session {
             room: live.handle.clone(),
             tx: live.tx.clone(),
-            hub, live, room_id, out_tx,
+            hub, live, room_id, 
+            out_tx, pong_tx, seat: seat,
         };
-
-        let mut skip_echo: Option<String> = None;
 
         loop {
             tokio::select! {
                 st = rx.recv() => {
                     match st {
-                        Ok(gs) => sess.on_broadcast(gs, &mut skip_echo).await,
+                        Ok(gs) => sess.on_broadcast(gs).await,
                         Err(broadcast::error::RecvError::Lagged(n)) => {
                             sess.push_error(
                                 &GameError::ErrorProtocol(format!("atrasou {} estados", n))
@@ -240,19 +236,18 @@ impl Session {
                         ).await;
                         continue;
                     };
-                    if sess.dispatch(client_msg, &mut skip_echo).await == Flow::Close { break; }
+                    if sess.dispatch(client_msg).await == Flow::Close { break; }
                 }
             }
         }
 
-        if let Some(ref tok) = token {
-            if let Ok(name) = sess.live.handle.leave(tok).await {
-                let _ = sess.live.tx.send(ServerMsg::Left { name: name.to_string() });
-            }
+        if let Ok(name) = sess.live.handle.leave(&token).await {
+            let _ = sess.live.tx.send(ServerMsg::Left { name: name.to_string() });
         }
 
         let hub = sess.hub.clone();
         let (room_id, live) = (sess.room_id.clone(), sess.live.clone());
+        sess.live.detach_seat(sess.seat);
         drop(sess);
         let _ = writer.await;
         hub.exit(&room_id, &live);

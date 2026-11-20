@@ -35,12 +35,14 @@ export function renderGameState(shell, st) {
 
     const d = st.continue || st.win || st.draw || st.rematch_pending ||
               st.rematch_declined || st;
+              
+    const out = Array.isArray(d.output) ? d.output.join('') : d.output;
 
-    if (d.output) {
+    if (out) {
         if (shell.state.boardsPrinted > 0) shell.clear(false);
         shell.state.boardsPrinted++;
-        shell.print(d.output);
-        shell.state.lastOutputState = d.output;
+        shell.print(out);
+        shell.state.lastOutputState = out;
         shell.state.lastTurnLine = st.continue?.next_player
             ? `Turno de: ${st.continue.next_player}` : null;
     }
@@ -65,7 +67,6 @@ export function renderGameState(shell, st) {
         } else {
             shell.print(`${st.rematch_declined.by} não aceitou o pedido de revanche`);
         }
-        shell.state.inGame = false;
     }
 }
 

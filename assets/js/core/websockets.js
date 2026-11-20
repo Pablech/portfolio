@@ -51,10 +51,12 @@ export function startGame(shell, roomId, token) {
             shell.state.lastOutputState = null;
             printChat(shell, chatServer(`${msg.name} saiu da sala`));
         } else if (msg.status === 'quit') {
+            shell.state.inGame = false; 
             shell.state.lastOutputState = null;
             shell.state.lastTurnLine = null;
             clearSession();
             clearTicket(shell);
+            ws.close();
         }
     };
 

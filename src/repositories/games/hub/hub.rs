@@ -3,7 +3,7 @@ use dashmap::DashMap;
 use lru::LruCache;
 use tokio::sync::{Mutex, broadcast};
 
-use crate::repositories::games::{Agent, CpuBrain, GameError, GameHub, GameLogic, GameRoom, LiveRoom, RoomHandle, generate_token};
+use crate::repositories::games::{Agent, AgentKind, CpuBrain, GameError, GameHub, GameLogic, GameRoom, LiveRoom, RoomHandle, generate_token};
 
 impl GameHub {
     pub fn new(rgs: u64, ots: u64, sgs: u64) -> Self {
@@ -21,7 +21,7 @@ impl GameHub {
 
     pub fn remove_room(&self, id: &str) {
         self.rooms.remove(id);
-        tracing::info!("sala {} removida", id);
+        tracing::debug!("sala {} removida", id);
     }
 
     pub fn enter(self: &Arc<Self>, id: &str) -> Option<Arc<LiveRoom>> {
@@ -50,6 +50,9 @@ impl GameHub {
 
         let (tx, _rx) = broadcast::channel(16);
         let n_agents = agents.len();
+        let rematch_votes: Vec<bool> = agents.iter()
+            .map(|a| matches!(a.kind, AgentKind::Cpu))
+            .collect();
         let live = Arc::new(LiveRoom {
             handle: Arc::new(Mutex::new(GameRoom::<L> { 
                 room_id: room_id.clone(), 
@@ -59,13 +62,15 @@ impl GameHub {
                 finished: false, 
                 brains, 
                 request_cache: LruCache::new(NonZeroUsize::new(30).unwrap()),
-                rematch_votes: vec![false; n_agents],
+                rematch_votes,
                 round: 0,
                 last_chat: vec![None; n_agents],
                 last_left: vec![None; n_agents],
                 seat_grace: self.seat_grace,
             })),
             tx,
+            seats: DashMap::new(),
+            teams: DashMap::new(),
             live: AtomicUsize::new(0),
             ever_joined: AtomicBool::new(false),
         });
@@ -89,7 +94,7 @@ impl GameHub {
                     && (!only_if_never_visited || !v.ever_joined.load(Ordering::SeqCst))
             });
             if ceifou.is_some() {
-                tracing::info!("sala {} ceifada ({})", room_id, reason);
+                tracing::debug!("sala {} ceifada ({})", room_id, reason);
             }
         });
     }

@@ -2,7 +2,7 @@ use std::{sync::{Arc, atomic::{AtomicBool, AtomicUsize}}, time::{Duration, Insta
 use dashmap::DashMap;
 use lru::LruCache;
 use serde::{Deserialize, Serialize};
-use tokio::sync::broadcast;
+use tokio::sync::{broadcast, mpsc};
 use axum::http::StatusCode;
 
 use crate::repositories::games::{ServerMsg, domain::{
@@ -61,6 +61,8 @@ pub struct GameRoom<L: GameLogic> {
 pub struct LiveRoom {
     pub handle: Arc<dyn RoomHandle>,
     pub tx: broadcast::Sender<ServerMsg>,
+    pub seats: DashMap<usize, mpsc::Sender<String>>,
+    pub teams: DashMap<usize, usize>,
     pub live: AtomicUsize,
     pub ever_joined: AtomicBool,
 }

@@ -26,9 +26,7 @@ impl <L: GameLogic> GameRoom<L> {
             .ok_or_else(|| GameError::ErrorMove("coluna começa em 1".into()))?;
 
         if !legal.contains(&mv) {
-            let col = mv + 1;
-            let reason = if (0..7).contains(&mv) { "coluna cheia" } else { "coluna inválida" };
-            return Err(GameError::ErrorMove(format!("coluna {}: {}", col, reason)));
+            return Err(GameError::ErrorMove(format!("jogada {} indisponível", mv + 1)));
         }
 
         let player = self.turn as u8 + 1;
@@ -61,36 +59,31 @@ impl <L: GameLogic> GameRoom<L> {
             if matches!(a.kind, AgentKind::Cpu) { *voted = true; }
         }
 
-        let (state, kill) = if !accept {
-            (GameState::State(MoveOutcome::RematchDeclined { by: self.agents[agent_indx].name.clone() }), true)
+        
+        let all_in = self.agents.iter().zip(self.rematch_votes.iter())
+            .all(|(a, voted)| matches!(a.kind, AgentKind::Cpu) || *voted);
+
+        let state = if all_in {
+            GameState::State(self.reset())
         } else {
-            let all_in = self.agents.iter().zip(self.rematch_votes.iter())
-                .all(|(a, voted)| matches!(a.kind, AgentKind::Cpu) || *voted);
-            if all_in {
-                (GameState::State(self.reset()), false)
-            } else {
-                let who = self.agents.iter().zip(self.rematch_votes.iter())
-                    .find(|(a, voted)| matches!(a.kind, AgentKind::Human) && !**voted)
-                    .map(|(a, _)| a.name.clone())
-                    .expect("ramo pending implica humano sem voto");
-                (GameState::State(MoveOutcome::RematchPending { who, }), false)
-            }
+            let who = self.agents.iter().zip(self.rematch_votes.iter())
+                .find(|(a, voted)| matches!(a.kind, AgentKind::Human) && !**voted)
+                .map(|(a, _)| a.name.clone())
+                .expect("ramo pending implica humano sem voto");
+            GameState::State(MoveOutcome::RematchPending { who, })
         };
+
 
         if let Some(req) = req_id {
             self.request_cache.put(req.to_string(), state.clone());
         }
 
-        Ok(if kill {
-            PlayResult::Dead(state)
-        } else {
-            PlayResult::Fresh(state)
-        })
+        Ok(PlayResult::Fresh(state))
     }
 
     pub(super) fn snapshot_state(&self) -> GameState {
         GameState::State(MoveOutcome::Continue { 
-            output: self.game.output(&self.agents), 
+            output: self.outputs(), 
             next_player: self.agents[self.turn].name.clone() 
         })
     }
@@ -99,16 +92,27 @@ impl <L: GameLogic> GameRoom<L> {
         self.round as u64
     }
 
-    pub(super) fn rematch_timeout(&self, cycle: u64) -> Option<GameState> {
+    pub(super) fn rematch_timeout(&mut self, cycle: u64) -> Option<(usize, String, GameState)> {
         if self.round as u64 != cycle { return None; }
         if !self.finished || !self.rematch_votes.iter().any(|&v| v) { return None; }
 
-        let missing_player = self.agents.iter().zip(self.rematch_votes.iter()) 
-            .find(|(a, voted)| matches!(a.kind, AgentKind::Human) && !**voted)
-            .map(|(a, _)| a.name.clone())
-            .unwrap_or_else(|| "tempo esgotado para rematch".into());
+        let missing = self.agents.iter().zip(self.rematch_votes.iter())
+            .position(|(a, voted)| matches!(a.kind, AgentKind::Human) 
+                && !*voted && a.token.is_some())?;
 
-        Some(GameState::State(MoveOutcome::RematchDeclined { by: missing_player, }))
+        let name = self.agents[missing].name.clone();
+        let state = GameState::State(MoveOutcome::RematchDeclined { by: name.clone() });
+
+        self.agents[missing].token = None;
+        self.last_left[missing] = None;
+
+        Some((missing, name, state))
+    }
+
+    fn init_rematch_votes(&mut self) {
+        for (a, voted) in self.agents.iter().zip(self.rematch_votes.iter_mut()) {
+            *voted = matches!(a.kind, AgentKind::Cpu);
+        }
     }
 
     fn resolve_after_place(&mut self) -> Result<MoveOutcome, GameError> {
@@ -118,7 +122,7 @@ impl <L: GameLogic> GameRoom<L> {
             if self.game.check_win(fig) {
                 self.finished = true;
                 return Ok(MoveOutcome::Win { 
-                    output: self.game.output(&self.agents), 
+                    output: self.outputs(), 
                     winner: self.agents[self.turn].name.clone(), 
                 });
             }
@@ -126,7 +130,7 @@ impl <L: GameLogic> GameRoom<L> {
             if self.game.check_draw() {
                 self.finished = true;
                 return Ok(MoveOutcome::Draw { 
-                    output: self.game.output(&self.agents) 
+                    output: self.outputs() 
                 });
             }
 
@@ -147,21 +151,21 @@ impl <L: GameLogic> GameRoom<L> {
         }
 
         Ok(MoveOutcome::Continue { 
-            output: self.game.output(&self.agents), 
+            output: self.outputs(), 
             next_player: self.agents[self.turn].name.clone(),
         })
     }
 
-    fn reset(&mut self) -> MoveOutcome {
+    pub(super) fn reset(&mut self) -> MoveOutcome {
         self.game = L::new();
         self.finished = false;
         self.turn = 0; // dice(self.agents.len());
         self.round += 1;
-        self.rematch_votes.iter_mut().for_each(|v| *v = false);
+        self.init_rematch_votes();
         self.request_cache.clear();
 
         MoveOutcome::Continue { 
-            output: self.game.output(&self.agents), 
+            output: self.outputs(), 
             next_player: self.agents[self.turn].name.clone(), 
         }
     }
