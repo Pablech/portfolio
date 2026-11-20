@@ -44,7 +44,7 @@ impl <L: GameLogic> RoomHandle for Mutex<GameRoom<L>> {
         room.rematch_round()
     }
 
-    async fn timeout_rematch(&self, cycle: u64) -> Option<(usize, String, GameState)> {
+    async fn timeout_rematch(&self, cycle: u64) -> Option<(usize, String, String, GameState)> {
         let mut room = self.lock().await;
 
         room.rematch_timeout(cycle)

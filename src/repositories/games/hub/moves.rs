@@ -92,7 +92,7 @@ impl <L: GameLogic> GameRoom<L> {
         self.round as u64
     }
 
-    pub(super) fn rematch_timeout(&mut self, cycle: u64) -> Option<(usize, String, GameState)> {
+    pub(super) fn rematch_timeout(&mut self, cycle: u64) -> Option<(usize, String, String, GameState)> {
         if self.round as u64 != cycle { return None; }
         if !self.finished || !self.rematch_votes.iter().any(|&v| v) { return None; }
 
@@ -102,11 +102,8 @@ impl <L: GameLogic> GameRoom<L> {
 
         let name = self.agents[missing].name.clone();
         let state = GameState::State(MoveOutcome::RematchDeclined { by: name.clone() });
-
-        self.agents[missing].token = None;
-        self.last_left[missing] = None;
-
-        Some((missing, name, state))
+        let token = self.agents[missing].token.clone();
+        Some((missing, name, token?, state))
     }
 
     fn init_rematch_votes(&mut self) {
