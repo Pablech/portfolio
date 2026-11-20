@@ -26,7 +26,7 @@ pub trait RoomHandle: Send + Sync {
     async fn claim(&self, name: Option<String>, fig: Option<char>) -> Result<ClaimedSeat, GameError>;
     async fn snapshot(&self) -> GameState;
     async fn rematch_cycle(&self) -> u64;
-    async fn timeout_rematch(&self, cycle: u64) -> Option<(usize, String, GameState)>;
+    async fn timeout_rematch(&self, cycle: u64) -> Option<(usize, String, String, GameState)>;
     async fn chat(&self, token: &str, text: &str) -> Result<String, GameError>;
     async fn leave(&self, token: &str) -> Result<String, GameError>;
     async fn quit(&self, token: &str) -> Result<String, GameError>;
