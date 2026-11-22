@@ -13,7 +13,7 @@ pub async fn security_header(req: Request, next: Next) -> Response {
     h.insert("X-Content-Type-Options", HeaderValue::from_static("nosniff"));
     h.insert("Referrer-Policy", HeaderValue::from_static("strict-origin-when-cross-origin"));
     h.insert("Strict-Transport-Security", HeaderValue::from_static("max-age=31536000; includeSubDomains"));
-    h.insert("permissions-policy", HeaderValue::from_static("camera=(), microphone=(), geolocation=()"));
+    h.insert("Permissions-Policy", HeaderValue::from_static("camera=(), microphone=(), geolocation=()"));
     h.insert("Content-Security-Policy", HeaderValue::from_static(
         "default-src 'self'; \
          script-src 'self'; \
