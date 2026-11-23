@@ -1,43 +1,42 @@
-use axum::{http::
-    {header, StatusCode},
-    response::{IntoResponse, Response},
-};
-use chrono::Utc;
+use std::sync::LazyLock;
+
+use axum::{http::{header, StatusCode}, response::{IntoResponse, Response}};
 
 struct SitemapRoute {
     loc: &'static str,
-    changefreq: &'static str,
-    priority: f32,
+    lastmod: &'static str,
 }
 
-// route =  "/sitemap.xml"
-pub async fn sitemap() -> Response {
-    let routes = vec![
-        SitemapRoute { loc: "https://pablech-dev.com/", changefreq: "weekly", priority: 1.0 },
-        SitemapRoute { loc: "https://pablech-dev.com/about", changefreq: "monthly", priority: 0.8 },
-        SitemapRoute { loc: "https://pablech-dev.com/github", changefreq: "daily", priority: 0.9 },
+// route = "/sitemap.xml"
+static SITEMAP_XML: LazyLock<String> = LazyLock::new(|| {
+    let routes = [
+        SitemapRoute { loc: "https://pablech-dev.com/",      lastmod: "2026-11-20" },
+        SitemapRoute { loc: "https://pablech-dev.com/about", lastmod: "2026-10-24" },
+        SitemapRoute { loc: "https://pablech-dev.com/github", lastmod: "2026-11-17" },
+        SitemapRoute { loc: "https://pablech-dev.com/api/resume", lastmod: "2026-11-16" },
+        SitemapRoute { loc: "https://pablech-dev.com/api/links", lastmod: "2026-11-16" },
     ];
 
-    let current_date = Utc::now().format("%Y-%m-%d"); 
-
-    let mut xml = String::from(r#"<?xml version="1.0" encoding="UTF-8"?>
-        <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">"#);
+    let mut xml = String::with_capacity(512);
+    xml.push_str(r#"<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">"#);
 
     for route in routes {
         xml.push_str(&format!(
             r#"
-                <url>
-                    <loc>{}</loc>
-                    <lastmod>{}</lastmod>
-                    <changefreq>{}</changefreq>
-                    <priority>{:.1}</priority>
-                </url>"#,
-            route.loc, current_date, route.changefreq, route.priority
+    <url>
+        <loc>{}</loc>
+        <lastmod>{}</lastmod>
+    </url>"#,
+            route.loc, route.lastmod
         ));
     }
 
     xml.push_str("\n</urlset>");
+    xml
+});
 
-    (StatusCode::OK, [(header::CONTENT_TYPE, "application/xml; charset=utf-8")],
-        xml, ).into_response()
+pub async fn sitemap() -> Response {(
+        StatusCode::OK, [(header::CONTENT_TYPE, "application/xml; charset=utf-8")], SITEMAP_XML.as_str(),
+    ).into_response()
 }

@@ -19,7 +19,7 @@ pub async fn security_header(req: Request, next: Next) -> Response {
          script-src 'self'; \
          style-src 'self' 'unsafe-inline'; \
          img-src 'self' data:; \
-         connect-src 'self' wss:; \
+         connect-src 'self' wss://pablech-dev.com; \
          frame-ancestors 'none'"
     ));
 
