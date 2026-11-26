@@ -22,6 +22,9 @@ pub struct Human {
     pub fig: char,
 }
 
+#[derive(Debug, Default)]
+pub struct SmartishBrain;
+
 pub struct Agent {
     pub kind: AgentKind,
     pub name: String,

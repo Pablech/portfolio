@@ -12,10 +12,14 @@ pub trait GameLogic: Send + Sync + 'static {
     fn check_win(&self, fig: u8) -> bool;
     fn check_draw(&self) -> bool;
     fn shared_output(&self) -> bool;
+    fn parse_input(input: &str) -> Result<usize, GameError>;
+    fn move_label(mv: usize) -> String;
+    fn on_host_seated(&mut self) {}
+    fn on_table_full(&mut self) {}
 }
 
 pub trait CpuBrain<L: GameLogic>: Send + Sync + 'static {
-    fn choose(&self, table: &L, legal: &[usize], fig: u8) -> usize;
+    fn choose(&self, table: &L, legal: &[usize], me: u8) -> usize;
 }
 
 #[async_trait::async_trait]

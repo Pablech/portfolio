@@ -4,6 +4,7 @@ use serde_with::serde_as;
 use crate::repositories::games::{GameLogic, GameError, connect4::COMBS};
 
 const CELLS: usize = 42;
+const LAST: &str = "red";
 
 #[serde_as]
 #[derive(Debug, Serialize, Deserialize, Clone)] 
@@ -15,7 +16,7 @@ pub struct Conn4Table {
 
 impl Default for Conn4Table {
     fn default() -> Self {
-        Self { cells: [None; CELLS], last_mv: None }
+        Self { cells: [None; CELLS], last_mv: None, }
     }
 }
 
@@ -53,6 +54,7 @@ impl GameLogic for Conn4Table {
         if !self.col_free(mv) {
             return Err(GameError::ErrorMove("Coluna cheia".to_string()));
         }
+
         for row in (0..6).rev() {
             let indx = Self::cell_indx(row, mv);
             if self.cells[indx].is_none() {
@@ -78,7 +80,6 @@ impl GameLogic for Conn4Table {
     }
 
     fn output(&self, players: &[crate::repositories::games::Agent], seat: &Option<usize>) -> String {
-        const LAST: &str = "red";
 
         let _ = seat;
 
@@ -118,5 +119,18 @@ impl GameLogic for Conn4Table {
 
     fn shared_output(&self) -> bool {
         true
+    }
+
+    fn parse_input(input: &str) -> Result<usize, GameError> {
+        let mv: usize = input.trim().parse::<usize>()
+            .map_err(|_| GameError::ErrorMove(format!("entrada {} inválida", input)))?;
+
+        let mv = mv.checked_sub(1)
+            .ok_or_else(|| GameError::ErrorMove("coluna começa em 1".into()))?;
+        Ok(mv)
+    }
+
+    fn move_label(mv: usize) -> String {
+        format!("{}", mv + 1)
     }
 }

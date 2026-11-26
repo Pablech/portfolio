@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
 use crate::repositories::games::{
-    Agent, AgentKind, CpuBrain, CreatedRoom, GameError, GameHub, GameKind, GameLogic, connect4::{Conn4Table, SmartishBrain}, generate_token, 
+    Agent, AgentKind, CpuBrain, CreatedRoom, GameError, GameHub, GameKind, GameLogic, SmartishBrain, 
+    battleship::BattleShipTable, connect4::Conn4Table, generate_token, 
 };
 
 pub fn build_agents(host_name: Option<String>, host_fig: Option<char>, vs_cpu: bool, seats: usize) -> Vec<Agent> {
@@ -29,6 +30,7 @@ impl GameKind {
     pub fn from_str(s: &str) -> Result<Self, GameError> {
         match s {
             "connect4" => Ok(Self::Connect4),
+            "battleship" => Ok(Self::BattleShips),
             other => Err(GameError::ErrorProtocol(format!("jogo desconhecido: {}", other))),
         }
     }
@@ -49,6 +51,22 @@ impl GameKind {
                 } else {
                     vec![None, None]
                 };
+                let (room_id, host_token) = hub.create_room(agents, brains)?;
+                Ok(CreatedRoom { room_id, host_token })
+            }
+            Self::BattleShips => {
+                let seats = BattleShipTable::SEATS;
+                let agents = build_agents(host_name, host_fig, vs_cpu, seats);
+
+                let brains: Vec<Option<Box<dyn CpuBrain<BattleShipTable>>>> = if vs_cpu {
+                    (0..seats).map(|i| match i {
+                        0 => None,
+                        _ => Some(Box::new(SmartishBrain) as Box<dyn CpuBrain<BattleShipTable>>),
+                    }).collect()
+                } else {
+                    vec![None, None]
+                };
+
                 let (room_id, host_token) = hub.create_room(agents, brains)?;
                 Ok(CreatedRoom { room_id, host_token })
             }

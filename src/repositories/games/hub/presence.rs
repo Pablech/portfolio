@@ -61,7 +61,11 @@ impl <L: GameLogic> GameRoom<L> {
             self.rematch_votes[indx] = false;
         }
 
-        if self.finished && self.is_full() { self.reset(); }
+        if self.finished && self.is_full() { 
+            self.reset(); 
+        } else if self.is_full() {
+            self.game.on_table_full();
+        }
 
         let agent = &self.agents[indx];
         Ok(ClaimedSeat { token, joined: agent.name.clone(), room_id: self.room_id.clone() })
