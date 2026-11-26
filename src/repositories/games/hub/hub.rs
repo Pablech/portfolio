@@ -3,7 +3,7 @@ use dashmap::DashMap;
 use lru::LruCache;
 use tokio::sync::{Mutex, broadcast};
 
-use crate::repositories::games::{Agent, AgentKind, CpuBrain, GameError, GameHub, GameLogic, GameRoom, LiveRoom, RoomHandle, generate_token};
+use crate::repositories::games::{Agent, AgentKind, CpuBrain, GameError, GameHub, GameLogic, GameRoom, LiveRoom, RoomHandle, generate_token,};
 
 impl GameHub {
     pub fn new(rgs: u64, ots: u64, sgs: u64) -> Self {
@@ -53,21 +53,29 @@ impl GameHub {
         let rematch_votes: Vec<bool> = agents.iter()
             .map(|a| matches!(a.kind, AgentKind::Cpu))
             .collect();
-        let live = Arc::new(LiveRoom {
-            handle: Arc::new(Mutex::new(GameRoom::<L> { 
-                room_id: room_id.clone(), 
-                game: L::new(), 
-                agents, 
-                turn: 0, //dice(n_agents), 
-                finished: false, 
-                brains, 
+
+        let room = {
+            let mut room = GameRoom::<L> {
+                room_id: room_id.clone(),
+                game: L::new(),
+                agents,
+                turn: 0,
+                finished: false,
+                brains,
                 request_cache: LruCache::new(NonZeroUsize::new(30).unwrap()),
                 rematch_votes,
                 round: 0,
                 last_chat: vec![None; n_agents],
                 last_left: vec![None; n_agents],
                 seat_grace: self.seat_grace,
-            })),
+            };
+            room.game.on_host_seated();
+            if room.is_full() { room.game.on_table_full(); }
+            room
+        };
+
+        let live = Arc::new(LiveRoom {
+            handle: Arc::new(Mutex::new(room)),
             tx,
             seats: DashMap::new(),
             teams: DashMap::new(),

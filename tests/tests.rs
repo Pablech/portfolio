@@ -69,6 +69,16 @@ mod tests {
                 None => String::new(),
             }
         }
+
+        fn move_label(mv: usize) -> String {
+            let _ = mv;
+            String::new()
+        }
+
+        fn parse_input(input: &str) -> Result<usize, GameError> {
+            let _ = input;
+            Ok(0)
+        }
     }
 
     #[test]

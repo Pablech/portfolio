@@ -19,14 +19,10 @@ impl <L: GameLogic> GameRoom<L> {
 
         let legal = self.game.legal_moves();
 
-        let mv: usize = input.trim().parse::<usize>()
-            .map_err(|_| GameError::ErrorMove(format!("entrada {} inválida", input)))?;
-
-        let mv = mv.checked_sub(1)
-            .ok_or_else(|| GameError::ErrorMove("coluna começa em 1".into()))?;
+        let mv: usize = L::parse_input(input)?;
 
         if !legal.contains(&mv) {
-            return Err(GameError::ErrorMove(format!("jogada {} indisponível", mv + 1)));
+            return Err(GameError::ErrorMove(format!("jogada {} indisponível", L::move_label(mv))));
         }
 
         let player = self.turn as u8 + 1;
@@ -156,15 +152,17 @@ impl <L: GameLogic> GameRoom<L> {
 
     pub(super) fn reset(&mut self) -> MoveOutcome {
         self.game = L::new();
+        self.game.on_host_seated();
+        if self.is_full() { self.game.on_table_full(); }
         self.finished = false;
-        self.turn = 0; // dice(self.agents.len());
+        self.turn = 0;
         self.round += 1;
         self.init_rematch_votes();
         self.request_cache.clear();
 
-        MoveOutcome::Continue { 
-            output: self.outputs(), 
-            next_player: self.agents[self.turn].name.clone(), 
+        MoveOutcome::Continue {
+            output: self.outputs(),
+            next_player: self.agents[self.turn].name.clone(),
         }
     }
 }

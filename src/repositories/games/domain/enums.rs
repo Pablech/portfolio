@@ -62,4 +62,5 @@ pub enum PlayResult {
 
 pub enum GameKind {
     Connect4,
+    BattleShips,
 }

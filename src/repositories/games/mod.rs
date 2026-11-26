@@ -6,6 +6,7 @@ pub mod connect4;
 pub mod registry;
 pub mod domain;
 pub mod hub;
+pub mod battleship;
 
 pub use domain::{traits::*, enums::*, structs::*};
 pub use ws::ws::handler as ws_handler;
