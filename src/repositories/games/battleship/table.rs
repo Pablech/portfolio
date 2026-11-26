@@ -273,6 +273,8 @@ impl GameLogic for BattleShipTable {
             out.push('\n');
         }
 
+        out.push('\n');
+
         if let Some(m) = my_last {
             let result = if self.tables[1 - s].shots[m] == Some(true) { "acertou" } else { "água" };
             out.push_str(&format!("Seu último tiro: {} ({})\n", Self::coord(m), result));
