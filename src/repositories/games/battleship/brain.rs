@@ -98,20 +98,23 @@ fn targets(foe: &AgentSea, pending: &[usize]) -> Vec<(usize, u32)> {
 
 impl CpuBrain<BattleShipTable> for SmartishBrain {
     fn choose(&self, table: &BattleShipTable, legal: &[usize], me: u8) -> usize {
-        let seat = (me -1) as usize;
+        let seat = (me - 1) as usize;
         let foe = &table[1 - seat];
-        let _ = legal;
 
         let map = density(foe);
         let pending = pending_hits(foe);
 
         if !pending.is_empty() {
             let cands = targets(foe, &pending);
-            if !cands.is_empty() {
-                return cands
+            if let Some((best_key, _)) = cands.iter().map(|&(c, score)| ((score, map[c] as u32), c)).max_by_key(|&(k, _)| k) {
+                let top: Vec<usize> = cands
                     .into_iter()
-                    .max_by_key(|&(c, score)| (score, map[c] as u32))
-                    .expect("cands de target não vazio").0;
+                    .filter(|&(c, score)| (score, map[c] as u32) == best_key)
+                    .map(|(c, _)| c)
+                    .collect();
+                if let Some(&mv) = top.choose(&mut rand::thread_rng()) {
+                    return mv;
+                }
             }
         }
 
@@ -121,9 +124,20 @@ impl CpuBrain<BattleShipTable> for SmartishBrain {
             .map(|c| {
                 let parity = if (c / GRID + c % GRID) % s_min == 0 { 3 } else { 1 };
                 (c, map[c] as u32 * parity)
-            }).collect();
-        
-        pool.choose_weighted(&mut rand::thread_rng(), |&(_, w)| w + 1)
-            .expect("sem células para atirar").0
+            })
+            .collect();
+
+        if !pool.is_empty() {
+            if let Ok(chosen) = pool.choose_weighted(&mut rand::thread_rng(), |&(_, w)| w + 1) {
+                return chosen.0;
+            }
+        }
+
+        legal
+            .iter()
+            .copied()
+            .find(|&c| foe.shots[c].is_none())
+            .or_else(|| legal.first().copied())
+            .unwrap_or(0)
     }
 }

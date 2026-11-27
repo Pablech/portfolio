@@ -309,4 +309,15 @@ impl GameLogic for BattleShipTable {
     fn on_table_full(&mut self) {
         self.deal_guest(&mut rand::thread_rng());
     }
+
+    fn next_turn(&self, current_turn: usize, num_seats: usize) -> usize {
+        let foe = 1 - current_turn;
+        let hit = self.tables[current_turn]
+            .last_move
+            .and_then(|mv| self.tables[foe].shots[mv])
+            .unwrap_or(false);
+
+        if hit { current_turn }
+        else { (current_turn + 1) % num_seats }
+    }
 }

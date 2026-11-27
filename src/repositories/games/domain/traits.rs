@@ -16,6 +16,7 @@ pub trait GameLogic: Send + Sync + 'static {
     fn move_label(mv: usize) -> String;
     fn on_host_seated(&mut self) {}
     fn on_table_full(&mut self) {}
+    fn next_turn(&self, current_turn: usize, num_seats: usize) -> usize;
 }
 
 pub trait CpuBrain<L: GameLogic>: Send + Sync + 'static {

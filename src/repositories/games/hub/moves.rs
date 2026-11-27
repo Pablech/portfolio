@@ -110,6 +110,8 @@ impl <L: GameLogic> GameRoom<L> {
     }
 
     fn resolve_after_place(&mut self) -> Result<MoveOutcome, GameError> {
+        let num_seats = self.agents.len();
+
         loop {
             let fig = self.turn as u8 + 1;
 
@@ -128,12 +130,9 @@ impl <L: GameLogic> GameRoom<L> {
                 });
             }
 
-            if self.brains[(self.turn + 1) % self.agents.len()].is_none() {
-                self.turn = (self.turn + 1) % self.agents.len();
-                break;
-            }
+            self.turn = self.game.next_turn(self.turn, num_seats);
 
-            self.turn = (self.turn + 1) % self.agents.len();
+            if self.brains[self.turn].is_none() { break; }
 
             if let Some(brain) = self.brains[self.turn].take() {
                 let fig = self.turn as u8 + 1;
