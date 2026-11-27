@@ -28,7 +28,7 @@ impl GitHub {
             env: env.clone(),
             httpc: httpc.clone(),
             accept: "application/vnd.github+json".parse().unwrap(),
-            auth_value: format!("Bearer {}", &env.git_token),
+            auth_value: format!("Bearer {}", env.git_token),
             user_agent: env.user_agent.clone(),
             cache: RwLock::new(None),
         }
@@ -37,7 +37,7 @@ impl GitHub {
     pub async fn fetch_repos(&self, include_private: bool) 
             -> Result<Vec<Repo>, Box<dyn std::error::Error + Send + Sync + 'static>> {
         
-        let url: String = format!("{}/user/repos", &self.env.url);
+        let url: String = format!("{}/user/repos", self.env.url);
         
         let mut header = HeaderMap::new();
         header.insert(AUTHORIZATION, HeaderValue::from_str(&self.auth_value)?);
@@ -65,7 +65,7 @@ impl GitHub {
     pub async fn fetch_readme(&self, full_name: &str) 
             -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
         
-        let url = format!("{}/repos/{}/readme", &self.env.url, full_name);
+        let url = format!("{}/repos/{}/readme", self.env.url, full_name);
 
         let mut header = HeaderMap::new();
         header.insert(USER_AGENT, HeaderValue::from_str(&self.user_agent)?);
@@ -93,7 +93,7 @@ impl GitHub {
     pub async fn fetch_structure(&self, full_name: &str)
             -> Result<Vec<RepoContent>, Box<dyn std::error::Error + Send + Sync + 'static>> {
         
-        let url = format!("{}/repos/{}/contents/",&self.env.url, &full_name);
+        let url = format!("{}/repos/{}/contents/", self.env.url, full_name);
 
         let mut header = HeaderMap::new();
         header.insert(USER_AGENT, HeaderValue::from_str(&self.user_agent)?);
@@ -163,7 +163,7 @@ impl GitHub {
             }
 
             frontend_repos.push(RepoInfo {
-                id: repo.id as u64,
+                id: repo.id,
                 name: repo.name.clone(),
                 desc,
                 lang,

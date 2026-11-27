@@ -170,7 +170,7 @@ impl Session {
         }
         Flow::Continue
     }
-
+    
     async fn connection(hub: Arc<GameHub>, live: Arc<LiveRoom>, room_id: String, token: String, seat: usize,
         joined: String, chat: bool, mut rx: broadcast::Receiver<ServerMsg>, socket: WebSocket) {
 
@@ -186,7 +186,7 @@ impl Session {
                         if sink.send(Message::Text(json)).await.is_err() { break; }
                     }
                     Some(payload) = pong_rx.recv() => {
-                        if sink.send(Message::Pong(payload.into())).await.is_err() { break; }
+                        if sink.send(Message::Pong(payload)).await.is_err() { break; }
                     }
                     else => break,
                 }
@@ -210,7 +210,7 @@ impl Session {
             room: live.handle.clone(),
             tx: live.tx.clone(),
             hub, live, room_id, 
-            out_tx, pong_tx, seat: seat,
+            out_tx, pong_tx, seat,
         };
 
         loop {

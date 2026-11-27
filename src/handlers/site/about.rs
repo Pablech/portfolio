@@ -22,9 +22,9 @@ static DYNAMIC_PROJECTS: LazyLock<Vec<Project>> = LazyLock::new(|| {
             .and_then(|n| n.to_str())
             .unwrap_or("projeto");
         
-        let name  = read_field(&entry, "name.txt").unwrap_or(folder_name);
-        let stack = read_field(&entry, "stack.txt").unwrap_or("");
-        let desc  = read_field(&entry, "desc.txt").unwrap_or("");
+        let name  = read_field(entry, "name.txt").unwrap_or(folder_name);
+        let stack = read_field(entry, "stack.txt").unwrap_or("");
+        let desc  = read_field(entry, "desc.txt").unwrap_or("");
         
         projects.push(Project { name, stack, desc });
     }
@@ -33,7 +33,7 @@ static DYNAMIC_PROJECTS: LazyLock<Vec<Project>> = LazyLock::new(|| {
 });
 
 static ABOUT_OUTPUT: LazyLock<String> = LazyLock::new(|| {
-    let projects_body = format_section(&*DYNAMIC_PROJECTS);
+    let projects_body = format_section(&DYNAMIC_PROJECTS);
 
     let sections = &[
         SectionContent { title: "Sobre mim", content: ABOUT },

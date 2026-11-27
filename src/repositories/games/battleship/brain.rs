@@ -122,7 +122,7 @@ impl CpuBrain<BattleShipTable> for SmartishBrain {
         let pool: Vec<(usize, u32)> = (0..CELLS)
             .filter(|&c| foe.shots[c].is_none())
             .map(|c| {
-                let parity = if (c / GRID + c % GRID) % s_min == 0 { 3 } else { 1 };
+                let parity = if (c / GRID + c % GRID).is_multiple_of(s_min) { 3 } else { 1 };
                 (c, map[c] as u32 * parity)
             })
             .collect();

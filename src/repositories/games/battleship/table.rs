@@ -31,6 +31,7 @@ pub struct AgentSea {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Default)]
 pub struct BattleShipTable {
     pub tables: [AgentSea; 2],
 }
@@ -45,12 +46,6 @@ impl Index<usize> for BattleShipTable {
 impl Default for AgentSea {
     fn default() -> Self {
         Self { ships: [0; CELLS], shots: [None; CELLS], hits: [0; 6], last_move: None }
-    }
-}
-
-impl Default for BattleShipTable {
-    fn default() -> Self {
-        Self { tables: [AgentSea::default(); 2], }
     }
 }
 

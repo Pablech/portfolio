@@ -88,7 +88,7 @@ impl GameLogic for Conn4Table {
                 None => format!("{:^3}", " "),
                 Some(1) => format!("{:^3}", players[0].fig),
                 Some(2) => format!("{:^3}", players[1].fig),
-                _ => format!("{}", "???"),
+                _ => "???".to_string(),
             };
             if last {
                 format!("<span style=\"color:{LAST};\">{fig}</span>")
