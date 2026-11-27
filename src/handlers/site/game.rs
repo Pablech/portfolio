@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{str::FromStr, sync::Arc};
 use axum::{Json, extract::{Path, State}, http::StatusCode};
 
 use crate::{handlers::structs::{ApiError, CreateRoomReq, CreateRoomResp, JoinRoomReq, JoinRoomResp}, repositories::games::{

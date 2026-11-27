@@ -8,6 +8,12 @@ pub struct TarpitState {
 
 const BLOCK_DURATION_SECS: u64 = 3600;
 
+impl Default for TarpitState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl TarpitState {
     pub fn new() -> Self {
         Self { blocked_ips: RwLock::new(HashMap::new()) }

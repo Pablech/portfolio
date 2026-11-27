@@ -23,7 +23,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     let env = EnvSetting::new();
     let httpc = HttpC::new(&env);
-    let addr  = format!("{}:{}", &env.host, &env.port);
+    let addr  = format!("{}:{}", env.host, env.port);
 
     if !httpc.ready() {warn!("HttpC is not ready"); return Err("HttpC not ready".into());}
 

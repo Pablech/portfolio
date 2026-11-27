@@ -22,6 +22,12 @@ pub struct EnvSetting {
     pub seat_grace: u64,
 }
 
+impl Default for EnvSetting {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl EnvSetting {
     pub fn new() -> Self {
         let _ = dotenvy::dotenv().expect(".env não encontrado");

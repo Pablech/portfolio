@@ -16,7 +16,7 @@ pub fn choice_fig(taken: &[char]) -> char {
 }
 
 pub fn resolve_name(requested: Option<String>, default_name: &str, 
-        seat: usize, taken_names: &Vec<String>, ) -> String {
+        seat: usize, taken_names: &[String] ) -> String {
     match requested {
         Some(n) if taken_names.contains(&n) => format!("{} {}", n, seat + 1),
         Some(n) => n,
