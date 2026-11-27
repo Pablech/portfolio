@@ -10,8 +10,7 @@ use tokio::sync::{broadcast, mpsc};
 
 use crate::{
     repositories::games::{
-        ClientMsg, Flow, Frame, GameError, GameHub, GameState, LiveRoom, 
-        MoveOutcome, PlayResult, ServerMsg, Session, WsParams,
+        ClientMsg, Flow, Frame, GameError, GameHub, GameState, LiveRoom, MoveOutcome, PlayResult, ServerMsg, Session, SessionParams, WsParams,
     }, state::AppState
 };
 
@@ -39,13 +38,21 @@ pub async fn handler(State(state): State<AppState>,
     let rx = live.tx.subscribe();
     let hub = state.games.clone();
 
+    let session_params = SessionParams {
+        room_id: room_id.clone(),
+        token,
+        seat,
+        joined,
+        chat,
+    };
+
     ws.on_failed_upgrade({
         let hub = hub.clone();
         let live = live.clone();
         let room_id = room_id.clone();
         move |_err| hub.exit(&room_id, &live)
     }).on_upgrade(move |socket| {
-        Session::connection(hub, live, room_id, token, seat, joined, chat, rx, socket)
+        Session::connection(hub, live, session_params, rx, socket)
     })
 }
 
@@ -171,9 +178,9 @@ impl Session {
         Flow::Continue
     }
     
-    async fn connection(hub: Arc<GameHub>, live: Arc<LiveRoom>, room_id: String, token: String, seat: usize,
-        joined: String, chat: bool, mut rx: broadcast::Receiver<ServerMsg>, socket: WebSocket) {
+    async fn connection(hub: Arc<GameHub>, live: Arc<LiveRoom>, session: SessionParams, mut rx: broadcast::Receiver<ServerMsg>, socket: WebSocket) {
 
+        let SessionParams { room_id, token, seat, joined, chat } = session;
         let (mut sink, mut stream) = socket.split();
 
         let (out_tx, mut out_rx) = mpsc::channel::<String>(16);

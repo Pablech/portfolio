@@ -19,3 +19,11 @@ pub struct Session {
     pub pong_tx: mpsc::Sender<Vec<u8>>,
     pub seat: usize,
 }
+
+pub struct SessionParams {
+    pub room_id: String,
+    pub token: String,
+    pub seat: usize,
+    pub joined: String,
+    pub chat: bool,
+}
