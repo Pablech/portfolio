@@ -34,7 +34,7 @@ async fn err_tuple(resp: reqwest::Response, code: u16) -> serde_json::Value {
         "status HTTP deve refletir o código da tupla");
     let body: serde_json::Value = resp.json().await.unwrap();
     assert_eq!(body["code"], code, "corpo deve trazer {code} em code: {body}");
-    assert!(body["message"].as_str().map_or(false, |m| !m.is_empty()),
+    assert!(body["message"].as_str().is_some_and(|m| !m.is_empty()),
         "message não pode vir vazia — é ela que o terminal imprime: {body}");
     body
 }
@@ -127,7 +127,7 @@ async fn join_room_claim_valido_e_atrasado_fica_fora() {
     let seat: serde_json::Value = resp.json().await.unwrap();
     assert_eq!(seat["joined"], "bob");
     assert_eq!(seat["room_id"], room_id);
-    assert!(seat["token"].as_str().map_or(false, |t| !t.is_empty()), "token veio");
+    assert!(seat["token"].as_str().is_some_and(|t| !t.is_empty()), "token veio");
 
     let e = err_tuple(claim(&addr, &room_id, serde_json::json!({})).await, 403).await;
     assert!(e["message"].as_str().unwrap().contains("sala") || e["message"].as_str().unwrap().contains("cheia"),
@@ -194,8 +194,7 @@ async fn chat_chega_pros_dois_e_nao_vaza_token() {
     assert!(!c1.contains(&t1), "token de alice NÃO pode vazar: {c1}");
     assert!(!c2.contains(&t1), "token de alice NÃO pode vazar pro guest: {c2}");
 
-    w2.send(Message::text(format!(
-        r#"{{"action":"chat","data":{{"token":"golpista","text":"oi?"}}}}"#))).await.unwrap();
+    w2.send(Message::text(r#"{"action":"chat","data":{"token":"golpista","text":"oi?"}}"#.to_string())).await.unwrap();
     let (ev, _) = wait_status(&mut r2, "error").await;
     assert_eq!(ev["code"], 403, "token inválido é ErrorJoin -> 403");
     assert!(ev["message"].as_str().unwrap_or("").contains("token"));
