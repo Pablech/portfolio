@@ -79,6 +79,10 @@ mod tests {
             let _ = input;
             Ok(0)
         }
+
+        fn next_turn(&self, current_turn: usize, num_seats: usize) -> usize {
+            (current_turn + 1) % num_seats
+        }
     }
 
     #[test]
