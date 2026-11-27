@@ -133,4 +133,8 @@ impl GameLogic for Conn4Table {
     fn move_label(mv: usize) -> String {
         format!("{}", mv + 1)
     }
+
+    fn next_turn(&self, current_turn: usize, num_seats: usize) -> usize {
+        (current_turn + 1) % num_seats
+    }
 }
