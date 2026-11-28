@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use axum::extract::FromRef;
 
-use crate::{core::env::EnvSetting, repositories::{games::GameHub, github::github::GitHub}};
+use crate::{core::env::EnvSetting, games::GameHub, repositories::github::client::GitHub};
 
 #[derive(Clone)]
 pub struct AppState {

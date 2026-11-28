@@ -5,7 +5,7 @@ use base64::{Engine as _, engine::general_purpose};
 use tracing::warn;
 use std::{sync::RwLock, time::Instant};
 
-use crate::repositories::httpc::httpc::HttpC;
+use crate::repositories::http::client::HttpC;
 use crate::core::env::EnvSetting;
 use crate::repositories::github::structs::{
     Repo, RepoContent, RepoFile, RepoInfo

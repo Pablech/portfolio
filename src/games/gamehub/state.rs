@@ -1,4 +1,4 @@
-use crate::repositories::games::{GameState, MoveOutcome};
+use crate::games::{GameState, MoveOutcome};
 
 impl GameState {
     pub fn for_seat(&self, seat: usize) -> GameState {

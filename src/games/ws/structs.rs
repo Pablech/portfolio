@@ -2,7 +2,7 @@ use std::sync::Arc;
 use serde::Deserialize;
 use tokio::sync::{broadcast, mpsc};
 
-use crate::repositories::games::{GameHub, LiveRoom, RoomHandle, ServerMsg};
+use crate::games::{GameHub, LiveRoom, RoomHandle, ServerMsg};
 
 #[derive(Deserialize)]
 pub struct WsParams {

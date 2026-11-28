@@ -3,7 +3,8 @@ use askama::Template;
 use axum::{http::StatusCode, response::{IntoResponse, Response}, Json};
 use serde_json::json;
 
-use crate::repositories::games::GameError;
+use crate::games::GameError;
+
 
 
 #[derive(Serialize, Clone)]

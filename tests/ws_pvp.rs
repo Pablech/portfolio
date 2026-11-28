@@ -3,10 +3,10 @@ use tokio_tungstenite::tungstenite::Message;
 use serde_json::json;
 
 use site::{
-    app::create_router, core::env::EnvSetting, repositories::{
-        games::{GameHub, GameKind}, github::github::GitHub, httpc::httpc::HttpC,
-    },
-};
+    app::create_router, core::env::EnvSetting,
+        games::{GameHub, GameKind}, 
+        repositories::{github::client::GitHub, http::client::HttpC},
+    };
 
 async fn wait_piece<S, E>(r: &mut S, piece: &str) -> String
 where

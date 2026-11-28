@@ -1,4 +1,4 @@
-use crate::repositories::games::battleship::AgentSea;
+use crate::games::battleship::AgentSea;
 
 pub fn ship_cells(anchor: usize, size: u8, vertical: bool) -> Vec<usize> {
     (0..size as usize)

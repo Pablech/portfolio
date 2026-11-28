@@ -1,3 +1,3 @@
-pub mod ws;
+pub mod websocket;
 pub mod structs;
 pub mod enums;

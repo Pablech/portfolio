@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use tokio::sync::{broadcast, mpsc};
 use axum::http::StatusCode;
 
-use crate::repositories::games::{ServerMsg, domain::{
+use crate::games::{ServerMsg, domain::{
     enums::{AgentKind, GameState}, traits::{CpuBrain, GameLogic, RoomHandle},
 }};
 

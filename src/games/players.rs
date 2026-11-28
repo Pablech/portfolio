@@ -1,4 +1,4 @@
-use crate::repositories::games::{Agent, AgentKind, Human, utils::{choice_fig, resolve_name}};
+use crate::games::{Agent, AgentKind, Human, utils::{choice_fig, resolve_name}};
 
 impl Human {
     pub fn new(name: String, fig: char) -> Self {

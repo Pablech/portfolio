@@ -4,7 +4,7 @@ mod tests {
     use lru::LruCache;
     use tokio::sync::Mutex;
 
-    use site::repositories::games::{
+    use site::games::{
             Agent, AgentKind, GameError, GameLogic, GameRoom, GameState, 
             MoveOutcome, PlayResult, RoomHandle, 
             connect4::Conn4Table, registry::build_agents, 

@@ -3,7 +3,7 @@ use dashmap::DashMap;
 use lru::LruCache;
 use tokio::sync::{Mutex, broadcast};
 
-use crate::repositories::games::{Agent, AgentKind, CpuBrain, GameError, GameHub, GameLogic, GameRoom, LiveRoom, RoomHandle, generate_token,};
+use crate::games::{Agent, AgentKind, CpuBrain, GameError, GameHub, GameLogic, GameRoom, LiveRoom, RoomHandle, generate_token,};
 
 impl GameHub {
     pub fn new(rgs: u64, ots: u64, sgs: u64) -> Self {

@@ -1,3 +1,2 @@
 pub mod github;
-pub mod httpc;
-pub mod games;
+pub mod http;

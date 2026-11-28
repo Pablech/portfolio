@@ -1,4 +1,4 @@
-use crate::repositories::games::{AgentKind, GameError, GameLogic, GameRoom, GameState, MoveOutcome, PlayResult};
+use crate::games::{AgentKind, GameError, GameLogic, GameRoom, GameState, MoveOutcome, PlayResult};
 
 impl <L: GameLogic> GameRoom<L> {
     pub(super) fn aply_moves(&mut self, token: &str, input: &str, req_id: Option<&str>) -> Result<PlayResult, GameError> {

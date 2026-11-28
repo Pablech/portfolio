@@ -9,9 +9,7 @@ use tower_governor::{
     key_extractor::SmartIpKeyExtractor
 };
 
-use crate::{repositories::{
-    games::{GameHub, ws_handler}, github::github::GitHub,
-}, state::AppState};
+use crate::{games::{GameHub, ws_handler}, repositories::github::client::GitHub, state::AppState};
 use crate::handlers::{site, wellknown};
 use crate::core::{
     env::EnvSetting,
