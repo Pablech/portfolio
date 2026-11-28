@@ -1,7 +1,7 @@
 use axum::{Json, http::header, extract::State};
 use std::sync::Arc;
 
-use crate::repositories::github::github::GitHub;
+use crate::repositories::github::client::GitHub;
 use crate::handlers::structs::BasicRes;
 
 // route = "/api/github"

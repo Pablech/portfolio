@@ -1,6 +1,6 @@
 use std::time::{Duration, Instant};
 
-use crate::{handlers::structs::ClaimedSeat, repositories::games::{AgentKind, GameError, GameLogic, GameRoom, GameState, generate_token, utils::{choice_fig, resolve_name}}};
+use crate::{handlers::structs::ClaimedSeat, games::{AgentKind, GameError, GameLogic, GameRoom, GameState, generate_token, utils::{choice_fig, resolve_name}}};
 
 impl <L: GameLogic> GameRoom<L> {
     pub(super) fn seat_info(&mut self, token: &str, req_id: Option<&str>) -> Result<GameState, GameError> {

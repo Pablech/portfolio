@@ -1,6 +1,6 @@
 use axum::http::StatusCode;
 
-use crate::repositories::games::{GameError, WsError};
+use crate::games::{GameError, WsError};
 
 pub enum Frame {
     Text(String), 

@@ -4,16 +4,12 @@ use std::sync::Arc;
 use std::net::SocketAddr;
 
 use site::{
-    core::{
-        logging::configure_log,
-        env::EnvSetting,
+    app::create_router, core::{
+        env::EnvSetting, logging::configure_log,
+    }, games::GameHub, repositories::{
+        github::client::GitHub,
+        http::client::HttpC,
     },
-    repositories::{
-        github::github::GitHub,
-        httpc::httpc::HttpC,
-        games::GameHub,
-    },
-    app::create_router,
 };
 
 #[tokio::main]

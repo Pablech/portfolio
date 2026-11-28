@@ -1,6 +1,6 @@
 use tokio::sync::mpsc;
 
-use crate::repositories::games::{GameState, LiveRoom, ServerMsg};
+use crate::games::{GameState, LiveRoom, ServerMsg};
 
 impl LiveRoom {
     pub fn attach_seat(&self, seat: usize, tx: mpsc::Sender<String>) {

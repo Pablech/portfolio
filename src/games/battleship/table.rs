@@ -3,7 +3,7 @@ use rand::seq::SliceRandom;
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
 
-use crate::repositories::games::{Agent, GameError, GameLogic, battleship::utils::{area_clear, ship_cells},};
+use crate::games::{Agent, GameError, GameLogic, battleship::utils::{area_clear, ship_cells},};
 
 pub const GRID: usize = 10;
 pub const CELLS: usize = GRID * GRID;

@@ -1,9 +1,7 @@
 use std::{str::FromStr, sync::Arc};
 use axum::{Json, extract::{Path, State}, http::StatusCode};
 
-use crate::{handlers::structs::{ApiError, CreateRoomReq, CreateRoomResp, JoinRoomReq, JoinRoomResp}, repositories::games::{
-    CreatedRoom, GameHub, GameKind,
-}};
+use crate::{games::{CreatedRoom, GameHub, GameKind}, handlers::structs::{ApiError, CreateRoomReq, CreateRoomResp, JoinRoomReq, JoinRoomResp}};
 
 // route = POST /games/rooms
 pub async fn create_room(State(hub): State<Arc<GameHub>>,

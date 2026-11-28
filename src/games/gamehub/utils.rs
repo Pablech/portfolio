@@ -1,4 +1,4 @@
-use crate::repositories::games::{GameLogic, GameRoom};
+use crate::games::{GameLogic, GameRoom};
 
 impl <L: GameLogic> GameRoom<L> {
     pub(super) fn get_index(&self, token: &str) -> Option<usize> {

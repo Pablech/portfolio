@@ -1,4 +1,4 @@
-use crate::{handlers::structs::ClaimedSeat, repositories::games::domain::{
+use crate::{handlers::structs::ClaimedSeat, games::domain::{
     enums::{GameError, GameState, PlayResult}, 
     structs::Agent
 }};

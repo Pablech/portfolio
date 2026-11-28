@@ -1,6 +1,6 @@
 use std::{str::FromStr, sync::Arc};
 
-use crate::repositories::games::{
+use crate::games::{
     Agent, AgentKind, CpuBrain, CreatedRoom, GameError, GameHub, GameKind, GameLogic, SmartishBrain, 
     battleship::BattleShipTable, connect4::Conn4Table, generate_token, 
 };
@@ -44,6 +44,17 @@ where
     }
 }
 
+fn create_for<L>(hub: &Arc<GameHub>, name: Option<String>, fig: Option<char>, vs_cpu: bool) -> Result<CreatedRoom, GameError> 
+where
+    L: GameLogic,
+    SmartishBrain: CpuBrain<L>,
+{
+    let agents = build_agents(name, fig, vs_cpu, L::SEATS);
+    let brains = build_brains::<L, _, _>(vs_cpu, L::SEATS, || SmartishBrain);
+    let (room_id, host_token) = hub.create_room(agents, brains)?;
+    Ok(CreatedRoom { room_id, host_token })
+}
+
 impl FromStr for GameKind {
     type Err = GameError;
 
@@ -62,20 +73,8 @@ impl GameKind {
         -> Result<CreatedRoom, GameError> {
 
         match self {
-            Self::Connect4 => {
-                let seats = Conn4Table::SEATS;
-                let agents = build_agents(host_name, host_fig, vs_cpu, seats);
-                let brains = build_brains::<Conn4Table, _, _>(vs_cpu, seats, || SmartishBrain);
-                let (room_id, host_token) = hub.create_room(agents, brains)?;
-                Ok(CreatedRoom { room_id, host_token })
-            }
-            Self::BattleShips => {
-                let seats = BattleShipTable::SEATS;
-                let agents = build_agents(host_name, host_fig, vs_cpu, seats);
-                let brains = build_brains::<BattleShipTable, _, _>(vs_cpu, seats, || SmartishBrain);
-                let (room_id, host_token) = hub.create_room(agents, brains)?;
-                Ok(CreatedRoom { room_id, host_token })
-            }
+            Self::Connect4 => create_for::<Conn4Table>(hub, host_name, host_fig, vs_cpu),
+            Self::BattleShips => create_for::<BattleShipTable>(hub, host_name, host_fig, vs_cpu),
         }
     }
 }

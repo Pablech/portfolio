@@ -5,10 +5,10 @@ pub mod utils;
 pub mod connect4;
 pub mod registry;
 pub mod domain;
-pub mod hub;
+pub mod gamehub;
 pub mod battleship;
 
 pub use domain::{traits::*, enums::*, structs::*};
-pub use ws::ws::handler as ws_handler;
+pub use ws::websocket::handler as ws_handler;
 pub use ws::{enums::*, structs::*};
 pub use utils::generate_token;

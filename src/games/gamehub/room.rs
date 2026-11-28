@@ -1,6 +1,6 @@
 use tokio::sync::Mutex;
 
-use crate::{handlers::structs::ClaimedSeat, repositories::games::{
+use crate::{handlers::structs::ClaimedSeat, games::{
     GameState, PlayResult, 
     domain::{enums::GameError, structs::GameRoom, 
     traits::{GameLogic, RoomHandle}},

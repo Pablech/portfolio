@@ -1,6 +1,6 @@
 use rand::seq::SliceRandom;
 
-use crate::repositories::games::{CpuBrain, SmartishBrain, 
+use crate::games::{CpuBrain, SmartishBrain, 
     battleship::{AgentSea, BattleShipTable, CELLS, FLEET, GRID, utils::ship_cells,}};
 
 const ORTHO: [(i32, i32); 4] = [(-1, 0), (1, 0), (0, -1), (0, 1)];

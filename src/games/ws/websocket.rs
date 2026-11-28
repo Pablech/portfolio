@@ -9,7 +9,7 @@ use futures::{SinkExt, StreamExt};
 use tokio::sync::{broadcast, mpsc};
 
 use crate::{
-    repositories::games::{
+    games::{
         ClientMsg, Flow, Frame, GameError, GameHub, GameState, LiveRoom, MoveOutcome, PlayResult, ServerMsg, Session, SessionParams, WsParams,
     }, state::AppState
 };

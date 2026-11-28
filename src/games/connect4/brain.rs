@@ -1,6 +1,7 @@
 use rand::seq::SliceRandom;
 
-use crate::repositories::games::{CpuBrain, SmartishBrain, connect4::Conn4Table};
+use crate::games::{CpuBrain, SmartishBrain, connect4::Conn4Table};
+
 
 impl CpuBrain<Conn4Table> for SmartishBrain {
     fn choose(&self, table: &Conn4Table, legal: &[usize], me: u8) -> usize {

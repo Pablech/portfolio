@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
 
-use crate::repositories::games::{GameLogic, GameError, connect4::COMBS};
+use crate::games::{Agent, GameError, GameLogic, connect4::COMBS};
 
 const CELLS: usize = 42;
 const LAST: &str = "red";
@@ -79,7 +79,7 @@ impl GameLogic for Conn4Table {
         self.cells.iter().all(|c| c.is_some())
     }
 
-    fn output(&self, players: &[crate::repositories::games::Agent], seat: &Option<usize>) -> String {
+    fn output(&self, players: &[Agent], seat: &Option<usize>) -> String {
 
         let _ = seat;
 
